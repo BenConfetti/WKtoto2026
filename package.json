@@ -1,0 +1,9 @@
+{
+  "name": "wk-toto-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dependency-vrije WK Toto MVP",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

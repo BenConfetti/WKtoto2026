@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WK Toto | Admin</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <p class="eyebrow">WK Toto MVP</p>
+      <h1>Admin</h1>
+      <p class="lede">
+        Beheer hier de spelregels en later ook wedstrijddata en uitslagen.
+      </p>
+      <nav class="nav">
+        <a href="./index.html">Voorspellen</a>
+        <a href="./stand.html">Stand</a>
+        <a href="./admin.html" aria-current="page">Admin</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <h2>Puntentelling wedstrijden</h2>
+        <div class="rule-grid">
+          <label>
+            Exacte uitslag
+            <input type="number" value="3">
+          </label>
+          <label>
+            Juiste winnaar / gelijkspel
+            <input type="number" value="1">
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Puntentelling knock-out</h2>
+        <div class="rule-grid">
+          <label>
+            Tweede ronde
+            <input type="number" value="2">
+          </label>
+          <label>
+            Derde ronde
+            <input type="number" value="3">
+          </label>
+          <label>
+            Kwartfinale
+            <input type="number" value="4">
+          </label>
+          <label>
+            Halve finale
+            <input type="number" value="6">
+          </label>
+          <label>
+            Finale
+            <input type="number" value="8">
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Admin-notities</h2>
+        <p>
+          Alleen jij krijgt toegang tot dit scherm in de echte applicatie. In de MVP koppelen we dit straks aan een eenvoudige beveiligde login.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

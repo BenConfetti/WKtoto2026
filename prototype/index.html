@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WK Toto | Voorspellingen</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <p class="eyebrow">WK Toto MVP</p>
+      <h1>Vul je voorspellingen in</h1>
+      <p class="lede">
+        Sla tussendoor op, ga later verder via je persoonlijke bewerk-link en wijzig alles tot de aftrap van de eerste WK-wedstrijd.
+      </p>
+      <nav class="nav">
+        <a href="./index.html" aria-current="page">Voorspellen</a>
+        <a href="./stand.html">Stand</a>
+        <a href="./admin.html">Admin</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <h2>Deelnemer</h2>
+        <label>
+          Naam
+          <input type="text" placeholder="Bijvoorbeeld: Kevin">
+        </label>
+        <div class="notice">
+          Na de eerste opslag krijgt deze deelnemer een unieke bewerk-link.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Wedstrijdvoorspellingen</h2>
+          <button type="button">Opslaan als concept</button>
+        </div>
+        <div class="match-list">
+          <article class="match-row">
+            <div>
+              <p class="match-title">Mexico - Japan</p>
+              <p class="match-meta">Mexico-Stad • 11 juni 2026 • 19:00</p>
+            </div>
+            <div class="score-inputs">
+              <input type="number" min="0" placeholder="0">
+              <span>-</span>
+              <input type="number" min="0" placeholder="0">
+            </div>
+          </article>
+          <article class="match-row">
+            <div>
+              <p class="match-title">Nederland - Ghana</p>
+              <p class="match-meta">Toronto • 12 juni 2026 • 21:00</p>
+            </div>
+            <div class="score-inputs">
+              <input type="number" min="0" placeholder="0">
+              <span>-</span>
+              <input type="number" min="0" placeholder="0">
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Knock-out landen</h2>
+        <div class="round-grid">
+          <div>
+            <h3>Tweede ronde</h3>
+            <p>2 punten per juist land</p>
+          </div>
+          <div>
+            <h3>Derde ronde</h3>
+            <p>3 punten per juist land</p>
+          </div>
+          <div>
+            <h3>Kwartfinale</h3>
+            <p>4 punten per juist land</p>
+          </div>
+          <div>
+            <h3>Halve finale</h3>
+            <p>6 punten per juist land</p>
+          </div>
+          <div>
+            <h3>Finale</h3>
+            <p>8 punten per juist land</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WK Toto | Voorspellen</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-brand">
+        <img src="/wk-logo.png" alt="WK 2026 logo">
+        <span>WK Toto 2026</span>
+      </div>
+      <p class="eyebrow">WK Toto</p>
+      <h1>Vul je voorspellingen in</h1>
+      <p class="hero-pool-name" id="hero-pool-name">Pool wordt geladen...</p>
+      <p class="lede" id="deadline-copy"></p>
+      <nav class="nav">
+        <a href="/" aria-current="page">Voorspellen</a>
+        <a href="/stand">Stand</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card form-intro-card">
+        <div class="section-head">
+          <h2>Jouw inzending</h2>
+          <div class="status-stack">
+            <span class="pill" id="save-status">Nog niet opgeslagen</span>
+            <span class="pill muted" id="completion-pill">0% ingevuld</span>
+          </div>
+        </div>
+        <label>
+          Naam
+          <input type="text" id="participant-name" placeholder="Bijvoorbeeld: Kevin">
+        </label>
+        <div class="notice">
+          Na je eerste opslag krijg je een persoonlijke bewerk-link. Ben je die kwijt, dan kun je hieronder met dezelfde naam je bestaande inzending weer openen zolang de deadline nog niet is verstreken.
+        </div>
+        <div class="actions">
+          <button type="button" id="save-button">Aanmelden en concept opslaan</button>
+          <button type="button" id="recover-button" class="secondary-button">Bestaande inzending openen</button>
+          <a class="secondary-action hidden" id="edit-link" href="/">Open je bewerk-link</a>
+        </div>
+        <p class="quick-links-label">Snelkoppelingen</p>
+        <nav class="form-jump-nav" aria-label="Snel naar onderdeel">
+          <a href="#groepsfase">Groepsfase</a>
+          <a href="#eindrondes">Eindrondes</a>
+          <a href="#open-vragen">Open vragen</a>
+        </nav>
+      </section>
+
+      <section class="card">
+        <h2 id="rules-title">Spelregels</h2>
+        <p class="notice" id="rules-intro"></p>
+        <div class="rules-body" id="rules-body"></div>
+      </section>
+
+      <section class="card compact-card" id="groepsfase">
+        <div class="section-head">
+          <h2>Wedstrijden</h2>
+          <span class="pill muted" id="competition-name"></span>
+        </div>
+        <div class="match-list" id="matches"></div>
+        <div class="group-standings-shell" id="group-standings-shell">
+          <div class="section-head">
+            <h3>Groepsstanden op basis van jouw voorspellingen</h3>
+            <span class="pill muted" id="group-progress-pill">0 wedstrijden verwerkt</span>
+          </div>
+          <p class="notice">
+            Deze standen werken live bij zodra je voor een wedstrijd beide scores hebt ingevuld.
+          </p>
+          <div class="group-standings-grid" id="group-standings"></div>
+          <div class="third-ranking-card" id="third-ranking"></div>
+        </div>
+      </section>
+
+      <section class="card compact-card" id="eindrondes">
+        <h2>Knock-out landen</h2>
+        <p class="notice">
+          Vul per knock-outwedstrijd de landen in die jij daar verwacht. Datum, tijd en speelstad volgen het officiële schema.
+        </p>
+        <div class="round-suggestion-card" id="second-round-suggestion"></div>
+        <div class="round-grid" id="rounds"></div>
+      </section>
+
+      <section class="card bonus-card compact-card" id="open-vragen">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow bonus-eyebrow">Extra Punten</p>
+            <h2>Open vragen</h2>
+          </div>
+          <span class="pill muted">Los van de wedstrijden</span>
+        </div>
+        <p class="notice">
+          Deze bonusvragen tellen ook mee voor de eindstand. Vul ze in nadat je wedstrijden en eindrondes hebt gedaan.
+        </p>
+        <div class="bonus-grid" id="bonus-questions"></div>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

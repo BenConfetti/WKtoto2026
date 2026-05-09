@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WK Toto | Admin</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-brand">
+        <img src="/wk-logo.png" alt="WK 2026 logo">
+        <span>WK Toto 2026</span>
+      </div>
+      <p class="eyebrow">WK Toto</p>
+      <h1>Admin</h1>
+      <p class="lede">Beheer hier de spelregels, de groepsfase-uitslagen en de werkelijke landen in de eindrondes.</p>
+      <nav class="nav">
+        <a href="/">Voorspellen</a>
+        <a href="/stand">Stand</a>
+        <a href="/admin" aria-current="page">Admin</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card" id="login-card">
+        <h2>Inloggen</h2>
+        <label>
+          Admin-wachtwoord
+          <input type="password" id="admin-password" placeholder="Voer je wachtwoord in">
+        </label>
+        <div class="actions">
+          <button type="button" id="login-button">Login</button>
+        </div>
+        <p class="notice" id="login-status">Nog niet ingelogd.</p>
+      </section>
+
+      <section class="card hidden" id="rules-card">
+        <div class="section-head">
+          <h2 id="selected-pool-name">Pool</h2>
+          <span class="pill muted" id="selected-pool-slug"></span>
+        </div>
+        <p class="notice">Alles hieronder geldt voor de geselecteerde pool. Wedstrijduitslagen en echte eindronde-landen blijven toernooibreed.</p>
+      </section>
+
+      <section class="card hidden" id="pool-card">
+        <div class="section-head">
+          <h2>Pools</h2>
+          <span class="pill muted" id="pool-count">0 pools</span>
+        </div>
+        <div class="admin-stack">
+          <label>
+            Nieuwe poolnaam
+            <input type="text" id="new-pool-name" placeholder="Bijvoorbeeld: Gerrie Senden Bokaal WK-toto">
+          </label>
+          <div class="actions">
+            <button type="button" id="create-pool-button">Pool aanmaken</button>
+          </div>
+          <p class="notice" id="pool-status">Nog geen wijzigingen.</p>
+        </div>
+        <div class="admin-pool-list" id="admin-pool-list"></div>
+      </section>
+
+      <section class="card hidden" id="pool-rules-card">
+        <h2>Tekst op de site</h2>
+        <div class="admin-stack">
+          <label>
+            Titel spelregels
+            <input type="text" id="publicRulesTitle" placeholder="Bijvoorbeeld: Spelregels">
+          </label>
+          <label>
+            Korte intro
+            <textarea id="publicRulesIntro" rows="3" placeholder="Korte uitleg boven de regels"></textarea>
+          </label>
+          <label>
+            Regels
+            <textarea id="publicRulesBody" rows="8" placeholder="Elke regel op een nieuwe regel"></textarea>
+          </label>
+        </div>
+
+        <h2>Puntentelling wedstrijden</h2>
+        <div class="rule-grid">
+          <label>
+            Exacte uitslag
+            <input type="number" id="exactScorePoints" min="0">
+          </label>
+          <label>
+            Juiste winnaar / gelijkspel
+            <input type="number" id="correctOutcomePoints" min="0">
+          </label>
+        </div>
+
+        <h2>Knock-out punten</h2>
+        <div class="rule-grid">
+          <label>
+            Tweede ronde
+            <input type="number" id="secondRoundPoints" min="0">
+          </label>
+          <label>
+            Derde ronde
+            <input type="number" id="thirdRoundPoints" min="0">
+          </label>
+          <label>
+            Kwartfinale
+            <input type="number" id="quarterFinalPoints" min="0">
+          </label>
+          <label>
+            Halve finale
+            <input type="number" id="semiFinalPoints" min="0">
+          </label>
+          <label>
+            Finale
+            <input type="number" id="finalPoints" min="0">
+          </label>
+        </div>
+
+        <h2>Bonusvragen</h2>
+        <div class="rule-grid">
+          <label>
+            Wereldkampioen
+            <input type="number" id="championPoints" min="0">
+          </label>
+          <label>
+            Meeste doelpunten
+            <input type="number" id="mostGoalsTeamPoints" min="0">
+          </label>
+          <label>
+            Meeste tegendoelpunten
+            <input type="number" id="mostConcededTeamPoints" min="0">
+          </label>
+          <label>
+            Afrikaans land komt het verst
+            <input type="number" id="bestAfricanTeamPoints" min="0">
+          </label>
+          <label>
+            Aziatisch land komt het verst
+            <input type="number" id="bestAsianTeamPoints" min="0">
+          </label>
+          <label>
+            Midden-Amerikaans land komt het verst
+            <input type="number" id="bestCentralAmericanTeamPoints" min="0">
+          </label>
+          <label>
+            Topscorer
+            <input type="number" id="topScorerPoints" min="0">
+          </label>
+          <label>
+            Topscorer voor Nederland
+            <input type="number" id="topScorerNetherlandsPoints" min="0">
+          </label>
+          <label>
+            Totaal aantal doelpunten
+            <input type="number" id="totalGoalsExactPoints" min="0">
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="save-rules-button">Poolregels opslaan</button>
+        </div>
+        <p class="notice" id="rules-status">Nog niets gewijzigd.</p>
+      </section>
+
+      <section class="card hidden" id="live-status-card">
+        <h2>Voorlopige tussenstanden</h2>
+        <p class="notice">Deze velden zijn alleen voor de live-weergave op de standenpagina en tellen nergens mee voor punten.</p>
+        <div class="rule-grid">
+          <label>
+            Huidige topscorer
+            <input type="text" id="liveCurrentTopScorer" placeholder="Bijvoorbeeld: Kylian Mbappe">
+          </label>
+          <label>
+            Huidige topscorer van Nederland
+            <input type="text" id="liveCurrentDutchTopScorer" placeholder="Bijvoorbeeld: Memphis Depay">
+          </label>
+          <label>
+            Doelpunten in knock-out tot nu toe
+            <input type="number" id="liveKnockoutGoalsSoFar" min="0">
+          </label>
+          <label>
+            Afgelopen knock-outwedstrijden tot nu toe
+            <input type="number" id="liveKnockoutFinishedMatches" min="0">
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" id="save-live-status-button">Voorlopige tussenstanden opslaan</button>
+        </div>
+        <p class="notice" id="live-status">Nog niets gewijzigd.</p>
+      </section>
+
+      <section class="card hidden" id="results-card">
+        <div class="section-head">
+          <h2>Werkelijke uitslagen en antwoorden</h2>
+          <button type="button" id="save-results-button">Uitslagen en antwoorden opslaan</button>
+        </div>
+        <p class="notice">Vul hier de uitslagen van de groepsfase in, kies per eindronde welke landen echt doorgaan en leg ook de juiste antwoorden voor de open vragen vast.</p>
+        <div class="status-banner muted" id="results-status-banner">Nog geen wijzigingen opgeslagen.</div>
+        <section class="admin-stage">
+          <h3>Juiste antwoorden bonusvragen</h3>
+          <div class="rule-grid">
+            <label>
+              Wereldkampioen
+              <select id="bonusResultChampionTeam"></select>
+            </label>
+            <label>
+              Meeste doelpunten
+              <select id="bonusResultMostGoalsTeam"></select>
+            </label>
+            <label>
+              Meeste tegendoelpunten
+              <select id="bonusResultMostConcededTeam"></select>
+            </label>
+            <label>
+              Afrikaans land komt het verst
+              <div class="checkbox-list" id="bonusResultBestAfricanTeamList"></div>
+            </label>
+            <label>
+              Aziatisch land komt het verst
+              <div class="checkbox-list" id="bonusResultBestAsianTeamList"></div>
+            </label>
+            <label>
+              Midden-Amerikaans land komt het verst
+              <div class="checkbox-list" id="bonusResultBestCentralAmericanTeamList"></div>
+            </label>
+            <label>
+              Topscorer
+              <textarea id="bonusResultTopScorer" rows="4" placeholder="Zet elke geldige variant op een nieuwe regel&#10;Bijvoorbeeld:&#10;Kylian Mbappe&#10;Mbappe"></textarea>
+            </label>
+            <label>
+              Topscorer voor Nederland
+              <textarea id="bonusResultTopScorerNetherlands" rows="4" placeholder="Zet elke geldige variant op een nieuwe regel&#10;Bijvoorbeeld:&#10;Memphis Depay&#10;Depay"></textarea>
+            </label>
+            <label>
+              Totaal aantal doelpunten
+              <input type="number" id="bonusResultTotalGoals" min="0">
+            </label>
+          </div>
+        </section>
+        <div class="admin-match-list" id="admin-match-list"></div>
+        <section class="admin-stage">
+          <h3>Werkelijke landen per eindronde</h3>
+          <div class="round-grid" id="admin-knockout-results"></div>
+        </section>
+        <section class="admin-stage">
+          <h3>Uitgeschakelde landen</h3>
+          <p class="notice">Vink hier landen aan die niet meer in het toernooi zitten. Daarmee kunnen foutieve knock-outkeuzes en de vraag over de wereldkampioen alvast rood worden gemarkeerd.</p>
+          <div class="checkbox-list" id="admin-eliminated-teams"></div>
+        </section>
+        <p class="notice" id="results-status">Nog geen wijzigingen opgeslagen.</p>
+      </section>
+
+      <section class="card hidden" id="participants-card">
+        <div class="section-head">
+          <h2>Deelnemers</h2>
+          <span class="pill muted" id="participants-count">0 aangemeld</span>
+        </div>
+        <p class="notice">Hier kun je als admin altijd alle ingevulde voorspellingen bekijken.</p>
+        <div class="admin-participants" id="admin-participants"></div>
+      </section>
+    </main>
+
+    <script src="/admin.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WK Toto | Deelnemer</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-brand">
+        <img src="/wk-logo.png" alt="WK 2026 logo">
+        <span>WK Toto 2026</span>
+      </div>
+      <p class="eyebrow">WK Toto</p>
+      <h1 id="participant-name">Deelnemer</h1>
+      <p class="lede">Bekijk hier alle voorspellingen van deze deelnemer.</p>
+      <nav class="nav">
+        <a href="/">Voorspellen</a>
+        <a href="/stand">Stand</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <h2>Wedstrijdvoorspellingen</h2>
+        <div class="participant-predictions" id="participant-predictions">
+          <p class="notice">Laden...</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Bonusvragen</h2>
+        <div class="admin-knockout-grid" id="participant-bonus">
+          <p class="notice">Laden...</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/participant.js" defer></script>
+  </body>
+</html>

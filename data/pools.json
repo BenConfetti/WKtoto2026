@@ -1,0 +1,56 @@
+[
+  {
+    "id": "pool-gerrie-senden-bokaal-wk-toto",
+    "name": "Gerrie Senden Bokaal WK-toto",
+    "slug": "gerrie-senden-bokaal-wk-toto",
+    "createdAt": "2026-05-04T00:00:00.000Z",
+    "rules": {
+      "exactScorePoints": 3,
+      "correctOutcomePoints": 1,
+      "secondRoundPoints": 4,
+      "thirdRoundPoints": 5,
+      "quarterFinalPoints": 6,
+      "semiFinalPoints": 8,
+      "finalPoints": 10,
+      "championPoints": 15,
+      "mostGoalsTeamPoints": 7,
+      "mostConcededTeamPoints": 7,
+      "bestAfricanTeamPoints": 7,
+      "bestAsianTeamPoints": 7,
+      "bestCentralAmericanTeamPoints": 7,
+      "topScorerPoints": 7,
+      "topScorerNetherlandsPoints": 7,
+      "totalGoalsExactPoints": 12,
+      "publicRulesTitle": "Spelregels",
+      "publicRulesIntro": "Vul al je voorspellingen in voor de aftrap van de eerste WK-wedstrijd.",
+      "publicRulesBody": "Goede exacte uitslag: 3 punten\nJuiste winnaar of juist gelijkspel zonder exacte uitslag: 1 punt\nJuist land in tweede ronde: 4 punten\nJuist land in derde ronde: 5 punten\nJuist land in kwartfinale: 6 punten\nJuist land in halve finale: 8 punten\nJuist land in finale: 10 punten\nBij knock-outlanden maakt de plek binnen die ronde niet uit: een juist land ergens in die ronde telt al goed\nWereldkampioen goed: 15 punten\nLand met meeste doelpunten goed: 7 punten\nLand met meeste tegendoelpunten goed: 7 punten\nAfrikaans land dat het verst komt goed: 7 punten\nAziatisch land dat het verst komt goed: 7 punten\nMidden-Amerikaans land dat het verst komt goed: 7 punten\nTopscorer goed: 7 punten\nTopscorer voor Nederland goed: 7 punten\nTotaal aantal doelpunten: 12 punten exact, daarna 1 punt minder per doelpunt afwijking"
+    }
+  },
+  {
+    "id": "f83c2a5a-f430-4aab-abad-06e378fff3bc",
+    "name": "Pater Eijmardweg",
+    "slug": "pater-eijmardweg",
+    "createdAt": "2026-05-05T17:36:35.241Z",
+    "rules": {
+      "exactScorePoints": 3,
+      "correctOutcomePoints": 1,
+      "secondRoundPoints": 4,
+      "thirdRoundPoints": 5,
+      "quarterFinalPoints": 6,
+      "semiFinalPoints": 8,
+      "finalPoints": 10,
+      "championPoints": 15,
+      "mostGoalsTeamPoints": 7,
+      "mostConcededTeamPoints": 7,
+      "bestAfricanTeamPoints": 7,
+      "bestAsianTeamPoints": 7,
+      "bestCentralAmericanTeamPoints": 7,
+      "topScorerPoints": 7,
+      "topScorerNetherlandsPoints": 7,
+      "totalGoalsExactPoints": 12,
+      "publicRulesTitle": "Spelregels",
+      "publicRulesIntro": "",
+      "publicRulesBody": ""
+    }
+  }
+]

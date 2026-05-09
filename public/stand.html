@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WK Toto | Stand</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-brand">
+        <img src="/wk-logo.png" alt="WK 2026 logo">
+        <span>WK Toto 2026</span>
+      </div>
+      <p class="eyebrow">WK Toto</p>
+      <h1>Live stand</h1>
+      <p class="hero-pool-name" id="hero-pool-name">Pool wordt geladen...</p>
+      <p class="lede">De ranking wordt automatisch berekend op basis van gespeelde wedstrijden, knock-out landen en bonusvragen.</p>
+      <nav class="nav">
+        <a href="/">Voorspellen</a>
+        <a href="/stand" aria-current="page">Stand</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <h2>Laatst bijgewerkt</h2>
+        <p class="notice" id="last-updated-match">Nog geen uitslagen verwerkt.</p>
+      </section>
+
+      <section class="card">
+        <h2>Stand</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Deelnemer</th>
+              <th>Totaal</th>
+              <th>Groepswedstrijden</th>
+              <th>Knock-out</th>
+              <th>Open vragen</th>
+            </tr>
+          </thead>
+          <tbody id="standings-body">
+            <tr>
+              <td colspan="6">Nog geen data geladen.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Toernooistatus</h2>
+        <div class="status-summary-grid" id="live-tournament-stats">
+          <p class="notice">Toernooistatus wordt geladen...</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Laatste 5 bijgewerkte wedstrijden</h2>
+        <div class="prediction-matrix-wrap" id="recent-matches">
+          <p class="notice">Nog geen verwerkte wedstrijden.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Komende 5 wedstrijden</h2>
+        <div class="prediction-matrix-wrap" id="upcoming-matches">
+          <p class="notice">Nog geen komende wedstrijden.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Knock-outlanden</h2>
+        <div class="prediction-matrix-wrap" id="knockout-overview">
+          <p class="notice">Nog geen knock-outvoorspellingen.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Open vragen</h2>
+        <div class="prediction-matrix-wrap" id="bonus-overview">
+          <p class="notice">Nog geen open vragen beschikbaar.</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/stand.js" defer></script>
+  </body>
+</html>

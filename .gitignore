@@ -1,0 +1,5 @@
+server-out.log
+server-err.log
+downloads/
+.DS_Store
+Thumbs.db
