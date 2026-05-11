@@ -414,10 +414,10 @@ function renderBonusOverview(bonusOverview, standings, unlocked) {
   );
 
   container.innerHTML = `
-    <table>
+    <table class="bonus-overview-table">
       <thead>
         <tr>
-          <th>Deelnemer</th>
+          <th class="bonus-name-head">Deelnemer</th>
           <th>Wereldkampioen</th>
           <th>Meeste goals</th>
           <th>Meeste tegen</th>
@@ -443,7 +443,7 @@ function renderBonusOverview(bonusOverview, standings, unlocked) {
 
             return `
               <tr>
-                <td>${participantNameCell({ id: entry.participantId, name: entry.participantName }, unlocked)}</td>
+                <td class="bonus-name-cell">${participantNameCell({ id: entry.participantId, name: entry.participantName }, unlocked)}</td>
                 <td>${renderAnswer(answers.championTeam)}</td>
                 <td>${renderAnswer(answers.mostGoalsTeam)}</td>
                 <td>${renderAnswer(answers.mostConcededTeam)}</td>
