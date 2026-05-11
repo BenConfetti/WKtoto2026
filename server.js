@@ -5,7 +5,10 @@ const crypto = require("node:crypto");
 
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
-const DATA_DIR = path.join(ROOT, "data");
+const SEED_DATA_DIR = path.join(ROOT, "data-seed");
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(ROOT, "data");
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "verander-mij";
 const ADMIN_COOKIE = "wk_admin_session";
@@ -22,22 +25,30 @@ const contentTypes = {
 };
 
 async function readJson(fileName, fallback) {
-  const filePath = path.join(DATA_DIR, fileName);
-
-  try {
-    const raw = await fs.readFile(filePath, "utf8");
-    return JSON.parse(raw);
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return fallback;
-    }
-
-    throw error;
+  const candidatePaths = [path.join(DATA_DIR, fileName)];
+  if (SEED_DATA_DIR !== DATA_DIR) {
+    candidatePaths.push(path.join(SEED_DATA_DIR, fileName));
   }
+
+  for (const filePath of candidatePaths) {
+    try {
+      const raw = await fs.readFile(filePath, "utf8");
+      return JSON.parse(raw);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  return fallback;
 }
 
 async function writeJson(fileName, value) {
   const filePath = path.join(DATA_DIR, fileName);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, JSON.stringify(value, null, 2) + "\n", "utf8");
 }
 
@@ -150,6 +161,16 @@ function matchOutcome(homeScore, awayScore) {
 
 function isDeadlinePassed(competition) {
   return new Date() >= new Date(competition.predictionDeadline);
+}
+
+function ensureCompetitionState(competition) {
+  return {
+    id: "wk-2026",
+    name: "WK 2026",
+    predictionDeadline: "2026-06-11T19:00:00Z",
+    timezone: "Europe/Amsterdam",
+    ...(competition || {}),
+  };
 }
 
 function computeMatchPoints(prediction, match, rules) {
@@ -720,6 +741,7 @@ async function getState() {
     readJson("rules.json", null),
     readJson("pools.json", []),
   ]);
+  const normalizedCompetition = ensureCompetitionState(competition);
 
   const normalizedPools = ensurePoolsState(pools, rules || {});
   const normalizedParticipants = participants.map((participant) => ({
@@ -741,10 +763,10 @@ async function getState() {
   });
 
   return {
-    competition,
+    competition: normalizedCompetition,
     matches: normalizedMatches,
     participants: normalizedParticipants,
-    rules,
+    rules: rules || {},
     pools: normalizedPools,
   };
 }
