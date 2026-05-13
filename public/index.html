@@ -44,49 +44,45 @@
           <button type="button" id="recover-button" class="secondary-button">Bestaande inzending openen</button>
           <a class="secondary-action hidden" id="edit-link" href="/">Open je bewerk-link</a>
         </div>
-        <p class="quick-links-label">Snelkoppelingen</p>
-        <nav class="form-jump-nav" aria-label="Snel naar onderdeel">
-          <a href="#groepsfase">Groepsfase</a>
-          <a href="#eindrondes">Eindrondes</a>
-          <a href="#open-vragen">Open vragen</a>
-        </nav>
+        <p class="quick-links-label">Invulpagina's</p>
+        <nav class="form-page-nav" id="form-page-nav" aria-label="Invulpagina's"></nav>
       </section>
 
-      <section class="card">
+      <section class="card form-page" data-page="spelregels">
         <h2 id="rules-title">Spelregels</h2>
         <p class="notice" id="rules-intro"></p>
         <div class="rules-body" id="rules-body"></div>
       </section>
 
-      <section class="card compact-card" id="groepsfase">
+      <section class="card compact-card" id="groepsfase" data-page-shell>
         <div class="section-head">
-          <h2>Wedstrijden</h2>
+          <h2>Groepsfase</h2>
           <span class="pill muted" id="competition-name"></span>
         </div>
         <div class="match-list" id="matches"></div>
-        <div class="group-standings-shell" id="group-standings-shell">
+        <div class="group-standings-shell form-page" id="group-standings-shell" data-page="overzicht">
           <div class="section-head">
-            <h3>Groepsstanden op basis van jouw voorspellingen</h3>
+            <h3>Overzicht groepsstanden</h3>
             <span class="pill muted" id="group-progress-pill">0 wedstrijden verwerkt</span>
           </div>
           <p class="notice">
-            Deze standen werken live bij zodra je voor een wedstrijd beide scores hebt ingevuld.
+            Alle tussenstanden werken live bij zodra je voor een wedstrijd beide scores hebt ingevuld.
           </p>
           <div class="group-standings-grid" id="group-standings"></div>
           <div class="third-ranking-card" id="third-ranking"></div>
         </div>
       </section>
 
-      <section class="card compact-card" id="eindrondes">
+      <section class="card compact-card" id="eindrondes" data-page-shell>
         <h2>Knock-out landen</h2>
         <p class="notice">
           Vul per knock-outwedstrijd de landen in die jij daar verwacht. Datum, tijd en speelstad volgen het officiële schema.
         </p>
-        <div class="round-suggestion-card" id="second-round-suggestion"></div>
+        <div class="round-suggestion-card form-page" id="second-round-suggestion" data-page="tweede-ronde"></div>
         <div class="round-grid" id="rounds"></div>
       </section>
 
-      <section class="card bonus-card compact-card" id="open-vragen">
+      <section class="card bonus-card compact-card form-page" id="open-vragen" data-page="open-vragen">
         <div class="section-head">
           <div>
             <p class="eyebrow bonus-eyebrow">Extra Punten</p>

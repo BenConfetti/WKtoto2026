@@ -128,17 +128,17 @@ function renderStandings(standings, unlocked) {
     return;
   }
 
-  body.innerHTML = standings
-    .map(
-      (entry, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${participantLink(entry, unlocked)}</td>
-          <td class="stand-total">${entry.totalPoints}</td>
-          <td>${entry.matchPoints}</td>
-          <td>${entry.knockoutPoints}</td>
-          <td>${entry.bonusPoints}</td>
-        </tr>
+    body.innerHTML = standings
+      .map(
+        (entry, index) => `
+          <tr>
+            <td class="standings-rank-cell">${index + 1}</td>
+            <td class="standings-name-cell">${participantLink(entry, unlocked)}</td>
+            <td class="stand-total">${entry.totalPoints}</td>
+            <td>${entry.matchPoints}</td>
+            <td>${entry.knockoutPoints}</td>
+            <td>${entry.bonusPoints}</td>
+          </tr>
       `,
     )
     .join("");
@@ -310,6 +310,7 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
     semiFinal: { slots: 4, compact: true },
     final: { slots: 2, compact: true },
   };
+  const roundOrder = ["secondRound", "thirdRound", "quarterFinal", "semiFinal", "final"];
 
   for (const block of knockoutOverview) {
     if (!groupedRounds.has(block.roundKey)) {
@@ -328,6 +329,73 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
       round.byParticipant.get(entry.participantId).push(...(entry.selections || []).filter((selection) => selection.team));
     }
   }
+
+  const summaryScores = participantRows
+    .map((participant) => {
+      const scores = Object.fromEntries(
+        roundOrder.map((roundKey) => {
+          const selections = groupedRounds.get(roundKey)?.byParticipant.get(participant.id) || [];
+          return [roundKey, selections.filter((selection) => selection.status === "correct").length];
+        }),
+      );
+
+      return {
+        participant,
+        scores,
+      };
+    });
+
+  const highestScoreByRound = Object.fromEntries(
+    roundOrder.map((roundKey) => [
+      roundKey,
+      Math.max(0, ...summaryScores.map((entry) => entry.scores[roundKey] || 0)),
+    ]),
+  );
+
+  const renderScoreCell = (score, roundKey) => {
+    const roundMax = roundMeta[roundKey]?.slots || 0;
+    const highestScore = highestScoreByRound[roundKey] || 0;
+    const level = score > 0 && highestScore > 0 ? Math.min(5, Math.max(1, Math.ceil((score / highestScore) * 5))) : 0;
+    return `<td class="knockout-score-cell knockout-score-level-${level}" title="${score} van ${roundMax} juist">${score}</td>`;
+  };
+
+  const summaryRows = summaryScores
+    .map(({ participant, scores }) => {
+      const cells = roundOrder
+        .map((roundKey) => renderScoreCell(scores[roundKey] || 0, roundKey))
+        .join("");
+
+      return `
+        <tr>
+          <th class="knockout-summary-name-cell">${participantNameCell(participant, unlocked)}</th>
+          ${cells}
+        </tr>
+      `;
+    })
+    .join("");
+
+  const summary = `
+    <section class="knockout-summary-section">
+      <div class="section-head">
+        <h3>Juist voorspelde knock-outlanden</h3>
+      </div>
+      <table class="knockout-summary-table">
+        <thead>
+          <tr>
+            <th class="knockout-summary-name-head">Deelnemer</th>
+            <th>Tweede ronde</th>
+            <th>Derde ronde</th>
+            <th>Kwartfinale</th>
+            <th>Halve finale</th>
+            <th>Finale</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${summaryRows}
+        </tbody>
+      </table>
+    </section>
+  `;
 
   const sections = [...groupedRounds.values()]
     .map((round) => {
@@ -395,7 +463,7 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
     .filter(Boolean)
     .join("");
 
-  container.innerHTML = sections || '<p class="notice">Nog geen knock-outvoorspellingen.</p>';
+  container.innerHTML = sections ? `${summary}${sections}` : '<p class="notice">Nog geen knock-outvoorspellingen.</p>';
 }
 
 function renderBonusOverview(bonusOverview, standings, unlocked) {

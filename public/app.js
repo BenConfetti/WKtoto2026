@@ -1,9 +1,9 @@
 const rounds = [
-  { key: "secondRound", label: "Tweede ronde", pointsKey: "secondRoundPoints", slots: 32 },
-  { key: "thirdRound", label: "Derde ronde", pointsKey: "thirdRoundPoints", slots: 16 },
-  { key: "quarterFinal", label: "Kwartfinale", pointsKey: "quarterFinalPoints", slots: 8 },
-  { key: "semiFinal", label: "Halve finale", pointsKey: "semiFinalPoints", slots: 4 },
-  { key: "final", label: "Finale", pointsKey: "finalPoints", slots: 2 },
+  { key: "secondRound", label: "Tweede ronde", pageKey: "tweede-ronde", pointsKey: "secondRoundPoints", slots: 32 },
+  { key: "thirdRound", label: "Derde ronde", pageKey: "derde-ronde", pointsKey: "thirdRoundPoints", slots: 16 },
+  { key: "quarterFinal", label: "Kwartfinale", pageKey: "finalerondes", pointsKey: "quarterFinalPoints", slots: 8 },
+  { key: "semiFinal", label: "Halve finale", pageKey: "finalerondes", pointsKey: "semiFinalPoints", slots: 4 },
+  { key: "final", label: "Finale", pageKey: "finalerondes", pointsKey: "finalPoints", slots: 2 },
 ];
 
 const AFRICAN_TEAMS = [
@@ -40,11 +40,13 @@ const state = {
   bootstrap: null,
   participant: null,
   saveTimer: null,
+  currentPage: "",
 };
 
 const nameInput = document.querySelector("#participant-name");
 const matchesContainer = document.querySelector("#matches");
 const roundsContainer = document.querySelector("#rounds");
+const formPageNav = document.querySelector("#form-page-nav");
 const saveButton = document.querySelector("#save-button");
 const recoverButton = document.querySelector("#recover-button");
 const saveStatus = document.querySelector("#save-status");
@@ -61,6 +63,57 @@ const groupStandingsContainer = document.querySelector("#group-standings");
 const thirdRankingContainer = document.querySelector("#third-ranking");
 const secondRoundSuggestionContainer = document.querySelector("#second-round-suggestion");
 const groupProgressPill = document.querySelector("#group-progress-pill");
+
+function pageKeyFromHash() {
+  return decodeURIComponent(window.location.hash.replace(/^#/, ""));
+}
+
+function setActivePage(pageKey, shouldUpdateHash = false) {
+  const pages = [...document.querySelectorAll("[data-page]")];
+  const availablePages = new Set(pages.map((page) => page.dataset.page));
+  const nextPage = availablePages.has(pageKey) ? pageKey : pages[0]?.dataset.page || "";
+
+  state.currentPage = nextPage;
+
+  for (const page of pages) {
+    page.classList.toggle("is-active", page.dataset.page === nextPage);
+  }
+
+  document.querySelectorAll("[data-page-shell]").forEach((shell) => {
+    const hasActivePage = Boolean(shell.querySelector(".form-page.is-active"));
+    shell.classList.toggle("hidden", !hasActivePage);
+  });
+
+  document.querySelectorAll("[data-page-link]").forEach((link) => {
+    const isCurrent = link.dataset.pageLink === nextPage;
+    if (isCurrent) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+
+  if (shouldUpdateHash && nextPage && pageKeyFromHash() !== nextPage) {
+    window.history.replaceState({}, "", `#${encodeURIComponent(nextPage)}`);
+  }
+}
+
+function renderPageNavigation() {
+  const groups = getGroupContexts(state.bootstrap.matches);
+  const links = [
+    { pageKey: "spelregels", label: "Spelregels" },
+    ...groups.map((group) => ({ pageKey: `poule-${group.key}`, label: `Poule ${group.key}` })),
+    { pageKey: "overzicht", label: "Overzicht" },
+    { pageKey: "tweede-ronde", label: "Tweede ronde" },
+    { pageKey: "derde-ronde", label: "Derde ronde" },
+    { pageKey: "finalerondes", label: "Kwart/Halve/Finale" },
+    { pageKey: "open-vragen", label: "Open vragen" },
+  ];
+
+  formPageNav.innerHTML = links
+    .map((link) => `<a href="#${link.pageKey}" data-page-link="${link.pageKey}">${link.label}</a>`)
+    .join("");
+}
 
 function getPoolSlug() {
   const parts = window.location.pathname.split("/").filter(Boolean);
@@ -234,57 +287,83 @@ function getGroupContexts(matches) {
 }
 
 function renderMatches(matches, predictions = []) {
-  const groupStageMatches = getGroupStageMatches(matches);
   const predictionByMatchId = new Map(predictions.map((item) => [item.matchId, item]));
-  const groupedMatches = new Map();
+  const groups = getGroupContexts(matches);
 
   matchesContainer.innerHTML = "";
 
-  for (const match of groupStageMatches) {
-    const dayKey = new Date(match.kickoffAt).toISOString().slice(0, 10);
-    if (!groupedMatches.has(dayKey)) {
-      groupedMatches.set(dayKey, []);
-    }
-    groupedMatches.get(dayKey).push(match);
-  }
-
-  for (const dayMatches of groupedMatches.values()) {
-    const daySection = document.createElement("section");
-    daySection.className = "day-block";
-
-    const heading = document.createElement("div");
-    heading.className = "day-heading";
-    heading.innerHTML = `
-      <h3>${formatDayLabel(dayMatches[0].kickoffAt)}</h3>
-      <p>${dayMatches.length} wedstrijd${dayMatches.length === 1 ? "" : "en"}</p>
+  for (const group of groups) {
+    const page = document.createElement("section");
+    page.className = "form-page group-form-page";
+    page.dataset.page = `poule-${group.key}`;
+    page.innerHTML = `
+      <div class="section-head">
+        <div>
+          <h3>Poule ${group.key}</h3>
+          <p class="notice">Vul de wedstrijden in deze poule in. De tussenstand hieronder werkt meteen mee.</p>
+        </div>
+        <span class="pill muted">${group.matches.length} wedstrijden</span>
+      </div>
+      <div class="day-match-stack"></div>
+      <div class="group-standings-shell inline-group-standings">
+        <div class="section-head">
+          <h3>Tussenstand poule ${group.key}</h3>
+          <span class="pill muted" id="group-progress-${group.key}">0/${group.matches.length} wedstrijden</span>
+        </div>
+        <div id="group-standing-${group.key}"></div>
+      </div>
     `;
-    daySection.appendChild(heading);
 
-    const list = document.createElement("div");
-    list.className = "day-matches";
-
-    for (const match of dayMatches) {
-      const prediction = predictionByMatchId.get(match.id) || {};
-      const groupKey = getGroupKey(match);
-      const article = document.createElement("article");
-      article.className = "match-row compact";
-      article.innerHTML = `
-        <div class="match-time">${formatTime(match.kickoffAt)}</div>
-        <div class="match-main">
-          <p class="match-title">${match.homeTeam} - ${match.awayTeam}</p>
-          <p class="match-meta">Poule ${groupKey || "?"} - ${match.city}</p>
-        </div>
-        <div class="score-inputs">
-          <input type="number" min="0" data-match-id="${match.id}" data-side="home" value="${prediction.predictedHomeScore ?? ""}">
-          <span>-</span>
-          <input type="number" min="0" data-match-id="${match.id}" data-side="away" value="${prediction.predictedAwayScore ?? ""}">
-        </div>
-      `;
-      list.appendChild(article);
+    const groupedMatches = new Map();
+    for (const match of group.matches) {
+      const dayKey = new Date(match.kickoffAt).toISOString().slice(0, 10);
+      if (!groupedMatches.has(dayKey)) {
+        groupedMatches.set(dayKey, []);
+      }
+      groupedMatches.get(dayKey).push(match);
     }
 
-    daySection.appendChild(list);
-    matchesContainer.appendChild(daySection);
+    const pageMatches = page.querySelector(".day-match-stack");
+
+    for (const dayMatches of groupedMatches.values()) {
+      const daySection = document.createElement("section");
+      daySection.className = "day-block";
+
+      const heading = document.createElement("div");
+      heading.className = "day-heading";
+      heading.innerHTML = `
+        <h3>${formatDayLabel(dayMatches[0].kickoffAt)}</h3>
+        <p>${dayMatches.length} wedstrijd${dayMatches.length === 1 ? "" : "en"}</p>
+      `;
+      daySection.appendChild(heading);
+
+      const list = document.createElement("div");
+      list.className = "day-matches";
+
+      for (const match of dayMatches) {
+        const prediction = predictionByMatchId.get(match.id) || {};
+        const article = document.createElement("article");
+        article.className = "match-row compact";
+        article.innerHTML = `
+          <div class="match-time">${formatTime(match.kickoffAt)}</div>
+          <div class="match-main">
+            <p class="match-title">${match.homeTeam} - ${match.awayTeam}</p>
+            <p class="match-meta">Poule ${group.key} - ${match.city}</p>
+          </div>
+          <div class="score-inputs">
+            <input type="number" min="0" data-match-id="${match.id}" data-side="home" value="${prediction.predictedHomeScore ?? ""}">
+            <span>-</span>
+            <input type="number" min="0" data-match-id="${match.id}" data-side="away" value="${prediction.predictedAwayScore ?? ""}">
+          </div>
+        `;
+        list.appendChild(article);
+      }
+
+      daySection.appendChild(list);
+      pageMatches.appendChild(daySection);
+    }
+
+    matchesContainer.appendChild(page);
   }
 }
 
@@ -679,6 +758,72 @@ function buildStandingsSnapshot() {
   };
 }
 
+function uniqueTeams(teams) {
+  return [...new Set(teams.filter(Boolean))];
+}
+
+function getGroupSlotTeam(snapshot, slotCode) {
+  const match = /^([12])([A-L])$/.exec(String(slotCode || ""));
+  if (!match) {
+    return "";
+  }
+
+  const rank = Number(match[1]);
+  const group = snapshot.groups.find((entry) => entry.key === match[2]);
+  return group?.table.find((entry) => entry.rank === rank)?.team || "";
+}
+
+function getThirdPlaceSlotTeams(snapshot, slotCode) {
+  const match = /^3-([A-L]+)$/.exec(String(slotCode || ""));
+  if (!match) {
+    return [];
+  }
+
+  const allowedGroups = new Set(match[1].split(""));
+  return snapshot.thirdPlaceRanking
+    .slice(0, 8)
+    .filter((entry) => allowedGroups.has(entry.groupKey))
+    .map((entry) => entry.team);
+}
+
+function getKnockoutSlotOptions(slotCode, knockoutPredictions, snapshot) {
+  const code = String(slotCode || "").trim();
+  const groupSlotTeam = getGroupSlotTeam(snapshot, code);
+  if (groupSlotTeam) {
+    return [groupSlotTeam];
+  }
+
+  const thirdPlaceTeams = getThirdPlaceSlotTeams(snapshot, code);
+  if (thirdPlaceTeams.length) {
+    return thirdPlaceTeams;
+  }
+
+  if (/^W\d+$/.test(code)) {
+    return getKnockoutMatchSelections(knockoutPredictions, code.slice(1));
+  }
+
+  return [];
+}
+
+function buildSecondRoundSuggestionFromSlots(knockoutPredictions, snapshot) {
+  const usedTeams = new Set();
+  const values = [];
+  const matches = getKnockoutMatchesByRoundKey(state.bootstrap.matches, "secondRound");
+
+  for (const match of matches) {
+    for (const slotCode of [match.homeSlotCode || match.homeTeam, match.awaySlotCode || match.awayTeam]) {
+      const options = getKnockoutSlotOptions(slotCode, knockoutPredictions, snapshot);
+      const nextTeam = options.find((team) => !usedTeams.has(team)) || "";
+      if (nextTeam) {
+        usedTeams.add(nextTeam);
+      }
+      values.push(nextTeam);
+    }
+  }
+
+  return values;
+}
+
 function renderGroupStandings(snapshot) {
   groupProgressPill.textContent = `${snapshot.totalCompletedMatches} wedstrijden verwerkt`;
   groupProgressPill.className = `pill ${snapshot.totalCompletedMatches > 0 ? "success" : "muted"}`.trim();
@@ -741,48 +886,23 @@ function renderGroupStandings(snapshot) {
             <h3>Poule ${group.key}</h3>
             <span class="pill muted">${group.completedMatches}/${group.totalMatches} wedstrijden</span>
           </div>
-          <div class="ranking-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Land</th>
-                  <th>Gs</th>
-                  <th>W</th>
-                  <th>Gl</th>
-                  <th>V</th>
-                  <th>Pt</th>
-                  <th>Dv</th>
-                  <th>Dt</th>
-                  <th>DS</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${group.table
-                  .map(
-                    (entry) => `
-                      <tr class="${entry.rank <= 2 ? "qualified-row" : entry.rank === 3 ? "playoff-row" : ""}">
-                        <td>${entry.rank}</td>
-                        <td>${entry.team}</td>
-                        <td>${entry.played}</td>
-                        <td>${entry.wins}</td>
-                        <td>${entry.draws}</td>
-                        <td>${entry.losses}</td>
-                        <td class="points-cell">${entry.points}</td>
-                        <td>${entry.goalsFor}</td>
-                        <td>${entry.goalsAgainst}</td>
-                        <td>${entry.goalDifference}</td>
-                      </tr>
-                    `,
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
+          ${renderGroupTable(group)}
         </section>
       `,
     )
     .join("");
+
+  for (const group of snapshot.groups) {
+    const container = document.querySelector(`#group-standing-${group.key}`);
+    const progress = document.querySelector(`#group-progress-${group.key}`);
+    if (container) {
+      container.innerHTML = renderGroupTable(group);
+    }
+    if (progress) {
+      progress.textContent = `${group.completedMatches}/${group.totalMatches} wedstrijden`;
+      progress.className = `pill ${group.completedMatches ? "success" : "muted"}`.trim();
+    }
+  }
 }
 
 function updateTotalGoalsSuggestion(snapshot) {
@@ -820,14 +940,57 @@ function renderSecondRoundSuggestion(suggestedTeams) {
   `;
 }
 
-function renderRounds(rules, knockoutPredictions = {}, suggestions = {}) {
+function renderGroupTable(group) {
+  return `
+    <div class="ranking-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Land</th>
+            <th>Gs</th>
+            <th>W</th>
+            <th>Gl</th>
+            <th>V</th>
+            <th>Pt</th>
+            <th>Dv</th>
+            <th>Dt</th>
+            <th>DS</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${group.table
+            .map(
+              (entry) => `
+                <tr class="${entry.rank <= 2 ? "qualified-row" : entry.rank === 3 ? "playoff-row" : ""}">
+                  <td>${entry.rank}</td>
+                  <td>${entry.team}</td>
+                  <td>${entry.played}</td>
+                  <td>${entry.wins}</td>
+                  <td>${entry.draws}</td>
+                  <td>${entry.losses}</td>
+                  <td class="points-cell">${entry.points}</td>
+                  <td>${entry.goalsFor}</td>
+                  <td>${entry.goalsAgainst}</td>
+                  <td>${entry.goalDifference}</td>
+                </tr>
+              `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderRounds(rules, knockoutPredictions = {}, suggestions = {}, snapshot = buildStandingsSnapshot()) {
   roundsContainer.innerHTML = "";
-  const countryOptions = getCountryOptions(state.bootstrap.matches);
 
   for (const round of rounds) {
     const matches = getKnockoutMatchesByRoundKey(state.bootstrap.matches, round.key);
     const wrapper = document.createElement("section");
-    wrapper.className = "round-card";
+    wrapper.className = "round-card form-page";
+    wrapper.dataset.page = round.pageKey;
     wrapper.innerHTML = `
       <div class="round-header">
         <div>
@@ -889,7 +1052,17 @@ function renderRounds(rules, knockoutPredictions = {}, suggestions = {}) {
         emptyOption.textContent = "Kies een land";
         select.appendChild(emptyOption);
 
-        for (const country of countryOptions) {
+        const slotOptions = uniqueTeams([
+          ...getKnockoutSlotOptions(slot.code, knockoutPredictions, snapshot),
+          slot.value,
+        ]);
+
+        if (!slotOptions.length) {
+          emptyOption.textContent =
+            round.key === "secondRound" ? "Vul eerst de poule volledig in" : "Vul vorige ronde eerst in";
+        }
+
+        for (const country of slotOptions) {
           if (selectedValues.includes(country) && country !== slot.value) {
             continue;
           }
@@ -926,8 +1099,9 @@ function refreshDerivedViews(overrideKnockoutPredictions = null) {
   renderSecondRoundSuggestion(snapshot.secondRoundSuggestion);
   renderRounds(state.bootstrap.rules, knockoutPredictions, {
     secondRoundSuggestion: snapshot.secondRoundSuggestion,
-  });
+  }, snapshot);
   setCompletionStatus(calculateCompletion());
+  setActivePage(state.currentPage || pageKeyFromHash(), false);
 }
 
 async function saveParticipant() {
@@ -1039,7 +1213,7 @@ function applySecondRoundSuggestion() {
   const snapshot = buildStandingsSnapshot();
   const nextPredictions = {
     ...collectKnockoutPredictions(),
-    secondRound: snapshot.secondRoundSuggestion.slice(0, 32),
+    secondRound: buildSecondRoundSuggestionFromSlots(collectKnockoutPredictions(), snapshot),
   };
   refreshDerivedViews(nextPredictions);
   queueAutosave();
@@ -1064,8 +1238,10 @@ async function init() {
   heroPoolName.textContent = state.bootstrap.pool?.name || state.bootstrap.competition.name;
 
   renderRulesContent(state.bootstrap.rules);
+  renderPageNavigation();
   renderMatches(state.bootstrap.matches);
   renderBonusQuestions(state.bootstrap.matches);
+  state.currentPage = pageKeyFromHash();
   refreshDerivedViews();
 
   if (state.bootstrap.isLocked) {
@@ -1116,6 +1292,10 @@ async function init() {
     }
 
     applySecondRoundSuggestion();
+  });
+
+  window.addEventListener("hashchange", () => {
+    setActivePage(pageKeyFromHash(), false);
   });
 }
 
