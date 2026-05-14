@@ -799,10 +799,16 @@ function getThirdPlaceSlotTeams(snapshot, slotCode) {
   }
 
   const allowedGroups = new Set(match[1].split(""));
-  return snapshot.thirdPlaceRanking
-    .slice(0, 8)
+  const qualifiedThirdPlaceTeams = snapshot.thirdPlaceRanking.slice(0, 8);
+  const directMatches = qualifiedThirdPlaceTeams
     .filter((entry) => allowedGroups.has(entry.groupKey))
     .map((entry) => entry.team);
+
+  if (directMatches.length) {
+    return directMatches;
+  }
+
+  return qualifiedThirdPlaceTeams.map((entry) => entry.team);
 }
 
 function getKnockoutSlotOptions(slotCode, knockoutPredictions, snapshot) {
