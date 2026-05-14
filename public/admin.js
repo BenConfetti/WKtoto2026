@@ -52,6 +52,7 @@ const poolRulesCard = document.querySelector("#pool-rules-card");
 const liveStatusCard = document.querySelector("#live-status-card");
 const resultsCard = document.querySelector("#results-card");
 const participantsCard = document.querySelector("#participants-card");
+const resetCard = document.querySelector("#reset-card");
 const loginStatus = document.querySelector("#login-status");
 const rulesStatus = document.querySelector("#rules-status");
 const liveStatus = document.querySelector("#live-status");
@@ -68,6 +69,8 @@ const participantsList = document.querySelector("#admin-participants");
 const resultsStatusBanner = document.querySelector("#results-status-banner");
 const saveResultsButton = document.querySelector("#save-results-button");
 const saveLiveStatusButton = document.querySelector("#save-live-status-button");
+const resetLaunchDataButton = document.querySelector("#reset-launch-data-button");
+const resetLaunchDataStatus = document.querySelector("#reset-launch-data-status");
 const eliminatedTeamsContainer = document.querySelector("#admin-eliminated-teams");
 
 const ruleFields = [
@@ -506,6 +509,7 @@ async function loadPoolRules() {
   liveStatusCard.classList.remove("hidden");
   resultsCard.classList.remove("hidden");
   participantsCard.classList.remove("hidden");
+  resetCard.classList.remove("hidden");
 }
 
 async function loadGlobalRules() {
@@ -921,6 +925,25 @@ async function deleteParticipant(participantId) {
   }
 }
 
+async function resetLaunchData() {
+  resetLaunchDataStatus.textContent = "Schoonzetten...";
+  const response = await fetch("/api/admin/reset-launch-data", {
+    method: "POST",
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Schoonzetten mislukt");
+  }
+
+  resetLaunchDataStatus.textContent = `Schoongezet: ${data.participants} deelnemers, ${data.matches} wedstrijden, ${data.pools} pools.`;
+  await loadPools();
+  await loadGlobalRules();
+  await loadMatches();
+  if (adminPools.length) {
+    await selectPool(adminPools[0].id);
+  }
+}
+
 document.querySelector("#login-button").addEventListener("click", () => {
   login().catch(() => {
     loginStatus.textContent = "Login mislukt";
@@ -948,6 +971,19 @@ document.querySelector("#create-pool-button").addEventListener("click", () => {
 saveResultsButton.addEventListener("click", () => {
   saveResults().catch(() => {
     setResultsStatus("Opslaan mislukt", "warning");
+  });
+});
+
+resetLaunchDataButton.addEventListener("click", () => {
+  const confirmed = window.confirm(
+    "Weet je zeker dat je alle deelnemers, formulieren en werkelijke uitslagen/antwoorden wilt wissen?",
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  resetLaunchData().catch((error) => {
+    resetLaunchDataStatus.textContent = error.message || "Schoonzetten mislukt";
   });
 });
 

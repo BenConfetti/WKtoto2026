@@ -46,10 +46,60 @@ async function readJson(fileName, fallback) {
   return fallback;
 }
 
+async function readSeedJson(fileName, fallback) {
+  try {
+    const raw = await fs.readFile(path.join(SEED_DATA_DIR, fileName), "utf8");
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return fallback;
+    }
+
+    throw error;
+  }
+}
+
 async function writeJson(fileName, value) {
   const filePath = path.join(DATA_DIR, fileName);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, JSON.stringify(value, null, 2) + "\n", "utf8");
+}
+
+function timestampForFileName() {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+async function backupParticipants(participants, label = "snapshot") {
+  if (!Array.isArray(participants) || participants.length === 0) {
+    return;
+  }
+
+  const safeLabel = String(label || "snapshot").replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "");
+  const backupsDir = path.join(DATA_DIR, "backups");
+  const backup = {
+    createdAt: new Date().toISOString(),
+    count: participants.length,
+    participants,
+  };
+
+  await fs.mkdir(backupsDir, { recursive: true });
+  await Promise.all([
+    fs.writeFile(
+      path.join(backupsDir, `participants-${timestampForFileName()}-${safeLabel || "snapshot"}.json`),
+      JSON.stringify(backup, null, 2) + "\n",
+      "utf8",
+    ),
+    fs.writeFile(
+      path.join(backupsDir, "participants-latest.json"),
+      JSON.stringify(backup, null, 2) + "\n",
+      "utf8",
+    ),
+  ]);
+}
+
+async function writeParticipants(participants, label) {
+  await writeJson("participants.json", participants);
+  await backupParticipants(participants, label);
 }
 
 function parseCookies(req) {
@@ -928,8 +978,9 @@ async function handleAdminDeleteParticipant(req, res, pool, participantId) {
     return;
   }
 
+  await backupParticipants(participants, "before-delete");
   participants.splice(index, 1);
-  await writeJson("participants.json", participants);
+  await writeParticipants(participants, "after-delete");
   sendJson(res, 200, { ok: true });
 }
 
@@ -1000,7 +1051,7 @@ async function createParticipant(res, body, pool) {
     };
 
   participants.push(participant);
-  await writeJson("participants.json", participants);
+  await writeParticipants(participants, "after-create");
 
   sendJson(res, 201, toPublicParticipant(participant, competition));
 }
@@ -1031,7 +1082,7 @@ async function updateParticipant(res, token, body, pool) {
   participant.knockoutPredictions = sanitizeKnockoutPredictions(body.knockoutPredictions);
   participant.bonusPredictions = sanitizeBonusAnswers(body.bonusPredictions);
 
-  await writeJson("participants.json", participants);
+  await writeParticipants(participants, "after-update");
   sendJson(res, 200, toPublicParticipant(participant, competition));
 }
 
@@ -1556,6 +1607,35 @@ async function handleAdminMatches(req, res) {
   });
 }
 
+async function handleAdminResetLaunchData(req, res) {
+  if (!isAdmin(req)) {
+    sendJson(res, 401, { error: "Niet ingelogd als admin" });
+    return;
+  }
+
+  const [seedMatches, seedRules, seedPools] = await Promise.all([
+    readSeedJson("matches.json", []),
+    readSeedJson("rules.json", {}),
+    readSeedJson("pools.json", []),
+  ]);
+  const existingParticipants = await readJson("participants.json", []);
+  await backupParticipants(existingParticipants, "before-reset-launch-data");
+
+  await Promise.all([
+    writeJson("matches.json", seedMatches),
+    writeJson("rules.json", seedRules),
+    writeJson("pools.json", seedPools),
+    writeJson("participants.json", []),
+  ]);
+
+  sendJson(res, 200, {
+    ok: true,
+    matches: seedMatches.length,
+    pools: seedPools.length,
+    participants: 0,
+  });
+}
+
 async function route(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
@@ -1626,6 +1706,11 @@ async function route(req, res) {
 
     if ((req.method === "GET" || req.method === "PUT") && pathname === "/api/admin/rules") {
       await handleAdminRules(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/admin/reset-launch-data") {
+      await handleAdminResetLaunchData(req, res);
       return;
     }
 
