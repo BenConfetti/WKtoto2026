@@ -23,7 +23,8 @@
       "totalGoalsExactPoints": 12,
       "publicRulesTitle": "Spelregels",
       "publicRulesIntro": "Vul al je voorspellingen in voor de aftrap van de eerste WK-wedstrijd.",
-      "publicRulesBody": "Goede exacte uitslag: 3 punten\nJuiste winnaar of juist gelijkspel zonder exacte uitslag: 1 punt\nJuist land in tweede ronde: 4 punten\nJuist land in derde ronde: 5 punten\nJuist land in kwartfinale: 6 punten\nJuist land in halve finale: 8 punten\nJuist land in finale: 10 punten\nBij knock-outlanden maakt de plek binnen die ronde niet uit: een juist land ergens in die ronde telt al goed\nWereldkampioen goed: 15 punten\nLand met meeste doelpunten goed: 7 punten\nLand met meeste tegendoelpunten goed: 7 punten\nAfrikaans land dat het verst komt goed: 7 punten\nAziatisch land dat het verst komt goed: 7 punten\nMidden-Amerikaans land dat het verst komt goed: 7 punten\nTopscorer goed: 7 punten\nTopscorer voor Nederland goed: 7 punten\nTotaal aantal doelpunten: 12 punten exact, daarna 1 punt minder per doelpunt afwijking"
+      "publicRulesBody": "Goede exacte uitslag: 3 punten\nJuiste winnaar of juist gelijkspel zonder exacte uitslag: 1 punt\nJuist land in tweede ronde: 4 punten\nJuist land in derde ronde: 5 punten\nJuist land in kwartfinale: 6 punten\nJuist land in halve finale: 8 punten\nJuist land in finale: 10 punten\nBij knock-outlanden maakt de plek binnen die ronde niet uit: een juist land ergens in die ronde telt al goed\nWereldkampioen goed: 15 punten\nLand met meeste doelpunten goed: 7 punten\nLand met meeste tegendoelpunten goed: 7 punten\nAfrikaans land dat het verst komt goed: 7 punten\nAziatisch land dat het verst komt goed: 7 punten\nMidden-Amerikaans land dat het verst komt goed: 7 punten\nGastland dat het verst komt goed: 7 punten\nTopscorer goed: 7 punten\nTopscorer voor Nederland goed: 7 punten\nTotaal aantal doelpunten: 12 punten exact, daarna 1 punt minder per doelpunt afwijking",
+      "bestHostTeamPoints": 7
     }
   },
   {
@@ -50,7 +51,8 @@
       "totalGoalsExactPoints": 12,
       "publicRulesTitle": "Spelregels",
       "publicRulesIntro": "",
-      "publicRulesBody": ""
+      "publicRulesBody": "",
+      "bestHostTeamPoints": 7
     }
   }
 ]

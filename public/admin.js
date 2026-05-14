@@ -15,7 +15,7 @@ const AFRICAN_TEAMS = [
   "Kaapverdie",
   "Marokko",
   "Senegal",
-  "Tunesie",
+  "Tunesië",
   "Zuid-Afrika",
 ];
 
@@ -23,18 +23,27 @@ const ASIAN_TEAMS = [
   "Irak",
   "Iran",
   "Japan",
-  "Jordanie",
+  "Jordanië",
   "Oezbekistan",
   "Qatar",
-  "Saoedi-Arabie",
+  "Saoedi-Arabië",
   "Zuid-Korea",
 ];
 
 const CENTRAL_AMERICAN_TEAMS = [
-  "Curacao",
-  "Haiti",
+  "Curaçao",
+  "Haïti",
   "Panama",
 ];
+
+const HOST_TEAMS = [
+  "Canada",
+  "VS",
+  "Mexico",
+];
+const HOST_TEAM_ALIASES = {
+  VS: "Verenigde Staten",
+};
 
 const loginCard = document.querySelector("#login-card");
 const rulesCard = document.querySelector("#rules-card");
@@ -78,6 +87,7 @@ const ruleFields = [
   "bestAfricanTeamPoints",
   "bestAsianTeamPoints",
   "bestCentralAmericanTeamPoints",
+  "bestHostTeamPoints",
   "topScorerPoints",
   "topScorerNetherlandsPoints",
   "totalGoalsExactPoints",
@@ -156,12 +166,13 @@ function calculateParticipantCompletion(participant) {
     participant.bonusPredictions?.bestAfricanTeam,
     participant.bonusPredictions?.bestAsianTeam,
     participant.bonusPredictions?.bestCentralAmericanTeam,
+    participant.bonusPredictions?.bestHostTeam,
     participant.bonusPredictions?.topScorer,
     participant.bonusPredictions?.topScorerNetherlands,
     participant.bonusPredictions?.totalGoals,
   ].filter((value) => value !== "" && value !== null && value !== undefined).length;
 
-  const totalItems = totalMatchItems + expectedKnockoutItems + 9;
+  const totalItems = totalMatchItems + expectedKnockoutItems + 10;
   const filledItems = filledMatchItems + totalKnockoutItems + filledBonusItems;
   if (totalItems === 0) {
     return 0;
@@ -180,7 +191,7 @@ function getCountryOptionsFromMatches(matches) {
 
 function filterAvailableTeams(matches, allowedTeams) {
   const availableTeams = new Set(getCountryOptionsFromMatches(matches));
-  return allowedTeams.filter((team) => availableTeams.has(team));
+  return allowedTeams.filter((team) => availableTeams.has(team) || availableTeams.has(HOST_TEAM_ALIASES[team]));
 }
 
 function getPoolInviteLink(pool) {
@@ -349,6 +360,7 @@ function syncBonusResultInputs(rules) {
   const africanCountries = filterAvailableTeams(adminMatches, AFRICAN_TEAMS);
   const asianCountries = filterAvailableTeams(adminMatches, ASIAN_TEAMS);
   const centralAmericanCountries = filterAvailableTeams(adminMatches, CENTRAL_AMERICAN_TEAMS);
+  const hostCountries = filterAvailableTeams(adminMatches, HOST_TEAMS);
   const bonusResults = rules?.bonusResults || {};
   populateBonusResultSelect("bonusResultChampionTeam", countries, bonusResults.championTeam || "");
   populateBonusResultSelect("bonusResultMostGoalsTeam", countries, bonusResults.mostGoalsTeam || "");
@@ -367,6 +379,11 @@ function syncBonusResultInputs(rules) {
     "bonusResultBestCentralAmericanTeamList",
     centralAmericanCountries,
     bonusResults.bestCentralAmericanTeamAnswers || [],
+  );
+  renderCheckboxList(
+    "bonusResultBestHostTeamList",
+    hostCountries,
+    bonusResults.bestHostTeamAnswers || [],
   );
   const topScorerInput = document.querySelector("#bonusResultTopScorer");
   const topScorerNetherlandsInput = document.querySelector("#bonusResultTopScorerNetherlands");
@@ -581,6 +598,7 @@ function collectBonusResultsPayload() {
     bestAfricanTeamAnswers: getCheckedValues("bonusResultBestAfricanTeamList"),
     bestAsianTeamAnswers: getCheckedValues("bonusResultBestAsianTeamList"),
     bestCentralAmericanTeamAnswers: getCheckedValues("bonusResultBestCentralAmericanTeamList"),
+    bestHostTeamAnswers: getCheckedValues("bonusResultBestHostTeamList"),
     topScorerAnswers: document.querySelector("#bonusResultTopScorer")?.value || "",
     topScorerNetherlandsAnswers: document.querySelector("#bonusResultTopScorerNetherlands")?.value || "",
     totalGoals:
@@ -864,6 +882,7 @@ function renderParticipants(participants) {
               <div class="admin-knockout-card"><strong>Afrikaans land komt het verst</strong><p>${participant.bonusPredictions?.bestAfricanTeam || "Nog niets ingevuld"}</p></div>
               <div class="admin-knockout-card"><strong>Aziatisch land komt het verst</strong><p>${participant.bonusPredictions?.bestAsianTeam || "Nog niets ingevuld"}</p></div>
               <div class="admin-knockout-card"><strong>Midden-Amerikaans land komt het verst</strong><p>${participant.bonusPredictions?.bestCentralAmericanTeam || "Nog niets ingevuld"}</p></div>
+              <div class="admin-knockout-card"><strong>Gastland komt het verst</strong><p>${participant.bonusPredictions?.bestHostTeam || "Nog niets ingevuld"}</p></div>
               <div class="admin-knockout-card"><strong>Topscorer</strong><p>${participant.bonusPredictions?.topScorer || "Nog niets ingevuld"}</p></div>
               <div class="admin-knockout-card"><strong>Topscorer voor Nederland</strong><p>${participant.bonusPredictions?.topScorerNetherlands || "Nog niets ingevuld"}</p></div>
               <div class="admin-knockout-card"><strong>Totaal doelpunten</strong><p>${participant.bonusPredictions?.totalGoals ?? "Nog niets ingevuld"}</p></div>

@@ -15,7 +15,7 @@ const AFRICAN_TEAMS = [
   "Kaapverdie",
   "Marokko",
   "Senegal",
-  "Tunesie",
+  "Tunesië",
   "Zuid-Afrika",
 ];
 
@@ -23,18 +23,27 @@ const ASIAN_TEAMS = [
   "Irak",
   "Iran",
   "Japan",
-  "Jordanie",
+  "Jordanië",
   "Oezbekistan",
   "Qatar",
-  "Saoedi-Arabie",
+  "Saoedi-Arabië",
   "Zuid-Korea",
 ];
 
 const CENTRAL_AMERICAN_TEAMS = [
-  "Curacao",
-  "Haiti",
+  "Curaçao",
+  "Haïti",
   "Panama",
 ];
+
+const HOST_TEAMS = [
+  "Canada",
+  "VS",
+  "Mexico",
+];
+const HOST_TEAM_ALIASES = {
+  VS: "Verenigde Staten",
+};
 
 const state = {
   bootstrap: null,
@@ -103,7 +112,7 @@ function renderPageNavigation() {
   const links = [
     { pageKey: "spelregels", label: "Spelregels" },
     ...groups.map((group) => ({ pageKey: `poule-${group.key}`, label: `Poule ${group.key}` })),
-    { pageKey: "overzicht", label: "Overzicht" },
+    { pageKey: "overzicht", label: "Overzicht groepsstanden" },
     { pageKey: "tweede-ronde", label: "Tweede ronde" },
     { pageKey: "derde-ronde", label: "Derde ronde" },
     { pageKey: "finalerondes", label: "Kwart/Halve/Finale" },
@@ -227,7 +236,7 @@ function getCountryOptions(matches) {
 
 function filterAvailableTeams(matches, allowedTeams) {
   const availableTeams = new Set(getCountryOptions(matches));
-  return allowedTeams.filter((team) => availableTeams.has(team));
+  return allowedTeams.filter((team) => availableTeams.has(team) || availableTeams.has(HOST_TEAM_ALIASES[team]));
 }
 
 function renderCountryOptions(options, selectedValue) {
@@ -387,6 +396,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
   const africanOptions = filterAvailableTeams(matches, AFRICAN_TEAMS);
   const asianOptions = filterAvailableTeams(matches, ASIAN_TEAMS);
   const centralAmericanOptions = filterAvailableTeams(matches, CENTRAL_AMERICAN_TEAMS);
+  const hostOptions = filterAvailableTeams(matches, HOST_TEAMS);
   bonusQuestionsContainer.innerHTML = `
     <label>
       Wie wordt wereldkampioen?
@@ -428,6 +438,13 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
       <select id="bonus-bestCentralAmericanTeam">
         <option value="">Kies een land</option>
         ${renderCountryOptions(centralAmericanOptions, bonusPredictions.bestCentralAmericanTeam)}
+      </select>
+    </label>
+    <label>
+      Welk gastland komt het verst?
+      <select id="bonus-bestHostTeam">
+        <option value="">Kies een land</option>
+        ${renderCountryOptions(hostOptions, bonusPredictions.bestHostTeam)}
       </select>
     </label>
     <label>
@@ -485,6 +502,7 @@ function collectBonusPredictions() {
     bestAfricanTeam: document.querySelector("#bonus-bestAfricanTeam")?.value || "",
     bestAsianTeam: document.querySelector("#bonus-bestAsianTeam")?.value || "",
     bestCentralAmericanTeam: document.querySelector("#bonus-bestCentralAmericanTeam")?.value || "",
+    bestHostTeam: document.querySelector("#bonus-bestHostTeam")?.value || "",
     topScorer: document.querySelector("#bonus-topScorer")?.value.trim() || "",
     topScorerNetherlands: document.querySelector("#bonus-topScorerNetherlands")?.value.trim() || "",
     totalGoals:
@@ -514,7 +532,7 @@ function calculateCompletion() {
     0,
   );
 
-  const totalBonusItems = 9;
+  const totalBonusItems = 10;
   const filledBonusItems = [
     bonusPredictions.championTeam,
     bonusPredictions.mostGoalsTeam,
@@ -522,6 +540,7 @@ function calculateCompletion() {
     bonusPredictions.bestAfricanTeam,
     bonusPredictions.bestAsianTeam,
     bonusPredictions.bestCentralAmericanTeam,
+    bonusPredictions.bestHostTeam,
     bonusPredictions.topScorer,
     bonusPredictions.topScorerNetherlands,
     bonusPredictions.totalGoals,

@@ -319,6 +319,7 @@ function sanitizeBonusAnswers(payload) {
     bestAfricanTeam: String(payload?.bestAfricanTeam || "").trim(),
     bestAsianTeam: String(payload?.bestAsianTeam || "").trim(),
     bestCentralAmericanTeam: String(payload?.bestCentralAmericanTeam || "").trim(),
+    bestHostTeam: String(payload?.bestHostTeam || "").trim(),
     topScorer: String(payload?.topScorer || "").trim(),
     topScorerNetherlands: String(payload?.topScorerNetherlands || "").trim(),
     totalGoals:
@@ -356,6 +357,11 @@ function sanitizeBonusResults(payload) {
       ? payload.bestCentralAmericanTeamAnswers
       : payload?.bestCentralAmericanTeamAnswers ?? payload?.bestCentralAmericanTeam,
   );
+  const bestHostTeamAnswers = sanitizeAnswerList(
+    payload?.bestHostTeamAnswers && Array.isArray(payload.bestHostTeamAnswers)
+      ? payload.bestHostTeamAnswers
+      : payload?.bestHostTeamAnswers ?? payload?.bestHostTeam,
+  );
   const topScorerNetherlandsAnswers = sanitizeAnswerList(
     payload?.topScorerNetherlandsAnswers && Array.isArray(payload.topScorerNetherlandsAnswers)
       ? payload.topScorerNetherlandsAnswers
@@ -372,6 +378,8 @@ function sanitizeBonusResults(payload) {
     bestAsianTeamAnswers,
     bestCentralAmericanTeam: bestCentralAmericanTeamAnswers[0] || "",
     bestCentralAmericanTeamAnswers,
+    bestHostTeam: bestHostTeamAnswers[0] || "",
+    bestHostTeamAnswers,
     topScorer: topScorerAnswers[0] || "",
     topScorerAnswers,
     topScorerNetherlands: topScorerNetherlandsAnswers[0] || "",
@@ -447,6 +455,13 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
     total += rules.bestCentralAmericanTeamPoints;
   }
 
+  const acceptedHostTeams = sanitizeAnswerList(
+    bonusResults.bestHostTeamAnswers?.length ? bonusResults.bestHostTeamAnswers : bonusResults.bestHostTeam,
+  );
+  if (bonusPredictions.bestHostTeam && acceptedHostTeams.includes(bonusPredictions.bestHostTeam)) {
+    total += rules.bestHostTeamPoints;
+  }
+
   const acceptedTopScorers = sanitizeAnswerList(
     bonusResults.topScorerAnswers?.length ? bonusResults.topScorerAnswers : bonusResults.topScorer,
   ).map(normalizeFreeText);
@@ -493,6 +508,7 @@ function sanitizeRules(body, previousRules = {}) {
     bestCentralAmericanTeamPoints: Number(
       body.bestCentralAmericanTeamPoints ?? previousRules.bestCentralAmericanTeamPoints ?? 7
     ),
+    bestHostTeamPoints: Number(body.bestHostTeamPoints ?? previousRules.bestHostTeamPoints ?? 7),
     topScorerPoints: Number(body.topScorerPoints ?? previousRules.topScorerPoints ?? 7),
     topScorerNetherlandsPoints: Number(body.topScorerNetherlandsPoints ?? previousRules.topScorerNetherlandsPoints ?? 7),
     totalGoalsExactPoints: Number(body.totalGoalsExactPoints ?? previousRules.totalGoalsExactPoints ?? 12),
@@ -523,6 +539,7 @@ function sanitizePoolRules(body, previousRules = {}) {
     bestCentralAmericanTeamPoints: Number(
       body.bestCentralAmericanTeamPoints ?? previousRules.bestCentralAmericanTeamPoints ?? 7
     ),
+    bestHostTeamPoints: Number(body.bestHostTeamPoints ?? previousRules.bestHostTeamPoints ?? 7),
     topScorerPoints: Number(body.topScorerPoints ?? previousRules.topScorerPoints ?? 7),
     topScorerNetherlandsPoints: Number(body.topScorerNetherlandsPoints ?? previousRules.topScorerNetherlandsPoints ?? 7),
     totalGoalsExactPoints: Number(body.totalGoalsExactPoints ?? previousRules.totalGoalsExactPoints ?? 12),
@@ -615,6 +632,16 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
       bonusResults.bestCentralAmericanTeamAnswers?.length
         ? bonusResults.bestCentralAmericanTeamAnswers
         : bonusResults.bestCentralAmericanTeam,
+    );
+    if (accepted.length) {
+      return accepted.includes(prediction) ? "correct" : "wrong";
+    }
+    return "pending";
+  }
+
+  if (questionKey === "bestHostTeam") {
+    const accepted = sanitizeAnswerList(
+      bonusResults.bestHostTeamAnswers?.length ? bonusResults.bestHostTeamAnswers : bonusResults.bestHostTeam,
     );
     if (accepted.length) {
       return accepted.includes(prediction) ? "correct" : "wrong";
@@ -1222,6 +1249,16 @@ async function handleStandings(res, pool) {
           status: getBonusAnswerStatus(
             "bestCentralAmericanTeam",
             bonusPredictions.bestCentralAmericanTeam,
+            effectiveRules.bonusResults || {},
+            eliminatedTeams,
+            effectiveRules,
+          ),
+        },
+        bestHostTeam: {
+          value: bonusPredictions.bestHostTeam || "",
+          status: getBonusAnswerStatus(
+            "bestHostTeam",
+            bonusPredictions.bestHostTeam,
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,

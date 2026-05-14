@@ -63,14 +63,14 @@ function shortenTeamName(team) {
   const normalized = String(team || "").trim();
   const abbreviations = {
     "Algerije": "ALG",
-    "Argentinie": "ARG",
-    "Australie": "AUS",
-    "Belgie": "BEL",
-    "Bosnie en Herzegovina": "BIH",
-    "Brazilie": "BRA",
+    "Argentinië": "ARG",
+    "Australië": "AUS",
+    "België": "BEL",
+    "Bosnië en Herzegovina": "BIH",
+    "Brazilië": "BRA",
     "Canada": "CAN",
     "Colombia": "COL",
-    "Curacao": "CUR",
+    "Curaçao": "CUR",
     "DR Congo": "COD",
     "Duitsland": "GER",
     "Ecuador": "ECU",
@@ -78,12 +78,12 @@ function shortenTeamName(team) {
     "Engeland": "ENG",
     "Frankrijk": "FRA",
     "Ghana": "GHA",
-    "Haiti": "HAI",
+    "Haïti": "HAI",
     "Irak": "IRQ",
     "Iran": "IRN",
     "Ivoorkust": "CIV",
     "Japan": "JPN",
-    "Jordanie": "JOR",
+    "Jordanië": "JOR",
     "Kaapverdie": "CPV",
     "Kroatie": "CRO",
     "Marokko": "MAR",
@@ -97,12 +97,12 @@ function shortenTeamName(team) {
     "Paraguay": "PAR",
     "Portugal": "POR",
     "Qatar": "QAT",
-    "Saoedi-Arabie": "KSA",
+    "Saoedi-Arabië": "KSA",
     "Schotland": "SCO",
     "Senegal": "SEN",
     "Spanje": "ESP",
-    "Tsjechie": "CZE",
-    "Tunesie": "TUN",
+    "Tsjechië": "CZE",
+    "Tunesië": "TUN",
     "Turkije": "TUR",
     "Uruguay": "URU",
     "Verenigde Staten": "USA",
@@ -492,6 +492,7 @@ function renderBonusOverview(bonusOverview, standings, unlocked) {
           <th>Beste Afrika</th>
           <th>Beste Azië</th>
           <th>Beste Midden-Amerika</th>
+          <th>Beste gastland</th>
           <th>Topscorer</th>
           <th>NL topscorer</th>
           <th>Totaal goals</th>
@@ -518,6 +519,7 @@ function renderBonusOverview(bonusOverview, standings, unlocked) {
                 <td>${renderAnswer(answers.bestAfricanTeam)}</td>
                 <td>${renderAnswer(answers.bestAsianTeam)}</td>
                 <td>${renderAnswer(answers.bestCentralAmericanTeam)}</td>
+                <td>${renderAnswer(answers.bestHostTeam)}</td>
                 <td>${renderAnswer(answers.topScorer)}</td>
                 <td>${renderAnswer(answers.topScorerNetherlands)}</td>
                 <td>${renderAnswer(answers.totalGoals)}</td>

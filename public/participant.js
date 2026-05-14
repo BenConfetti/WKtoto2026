@@ -51,6 +51,7 @@ function renderBonus(bonusPredictions) {
     <div class="admin-knockout-card"><strong>Afrikaans land komt het verst</strong><p>${bonusPredictions?.bestAfricanTeam || "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Aziatisch land komt het verst</strong><p>${bonusPredictions?.bestAsianTeam || "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Midden-Amerikaans land komt het verst</strong><p>${bonusPredictions?.bestCentralAmericanTeam || "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Gastland komt het verst</strong><p>${bonusPredictions?.bestHostTeam || "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Topscorer</strong><p>${bonusPredictions?.topScorer || "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Topscorer voor Nederland</strong><p>${bonusPredictions?.topScorerNetherlands || "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Totaal doelpunten</strong><p>${bonusPredictions?.totalGoals ?? "Niet ingevuld"}</p></div>
