@@ -5788,6 +5788,14 @@ function getKnockoutSlotOptions(slotCode, knockoutPredictions, snapshot, opponen
   return [];
 }
 
+function getRoundSlotOptions(roundKey, slotCode, knockoutPredictions, snapshot, opponentSlotCode = "") {
+  if (roundKey === "secondRound") {
+    return getCountryOptions(state.bootstrap.matches);
+  }
+
+  return getKnockoutSlotOptions(slotCode, knockoutPredictions, snapshot, opponentSlotCode);
+}
+
 function buildSecondRoundSuggestionFromSlots(knockoutPredictions, snapshot) {
   const usedTeams = new Set();
   const values = [];
@@ -6040,7 +6048,7 @@ function renderRounds(rules, knockoutPredictions = {}, suggestions = {}, snapsho
         select.appendChild(emptyOption);
 
         const slotOptions = uniqueTeams([
-          ...getKnockoutSlotOptions(slot.code, knockoutPredictions, snapshot, opponentSlotCode),
+          ...getRoundSlotOptions(round.key, slot.code, knockoutPredictions, snapshot, opponentSlotCode),
           slot.value,
         ]);
 
