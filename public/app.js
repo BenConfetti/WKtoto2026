@@ -6058,7 +6058,7 @@ function renderRounds(rules, knockoutPredictions = {}, suggestions = {}, snapsho
         }
 
         for (const country of slotOptions) {
-          if (selectedValues.includes(country) && country !== slot.value) {
+          if (round.key !== "secondRound" && selectedValues.includes(country) && country !== slot.value) {
             continue;
           }
 
