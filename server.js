@@ -600,8 +600,13 @@ function sanitizePoolRules(body, previousRules = {}) {
 }
 
 function buildEffectiveRules(pool, globalRules) {
+  const poolRules = sanitizePoolRules(pool?.rules || {}, globalRules || {});
+  const globalSanitizedRules = sanitizePoolRules(globalRules || {});
   return {
-    ...sanitizePoolRules(pool?.rules || {}),
+    ...poolRules,
+    publicRulesTitle: poolRules.publicRulesTitle || globalSanitizedRules.publicRulesTitle,
+    publicRulesIntro: poolRules.publicRulesIntro || globalSanitizedRules.publicRulesIntro,
+    publicRulesBody: poolRules.publicRulesBody || globalSanitizedRules.publicRulesBody,
     bonusResults: sanitizeBonusResults(globalRules?.bonusResults ?? {}),
     knockoutResults: sanitizeKnockoutResults(globalRules?.knockoutResults),
     eliminatedTeams: sanitizeTeamList(globalRules?.eliminatedTeams ?? []),
@@ -876,7 +881,20 @@ async function handleGetParticipant(res, token, pool) {
 }
 
 function normalizeParticipantName(name) {
-  return String(name || "").trim().toLocaleLowerCase("nl");
+  return String(name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("nl");
+}
+
+function findParticipantByName(participants, poolId, name, ignoredParticipantId = "") {
+  const normalizedName = normalizeParticipantName(name);
+  return participants.find(
+    (entry) =>
+      entry.poolId === poolId &&
+      entry.id !== ignoredParticipantId &&
+      normalizeParticipantName(entry.name) === normalizedName,
+  );
 }
 
 async function handleRecoverParticipant(res, body, pool) {
@@ -1038,17 +1056,25 @@ async function createParticipant(res, body, pool) {
     return;
   }
 
-    const participant = {
-      id: crypto.randomUUID(),
-      poolId: pool.id,
-      name,
-      editToken: crypto.randomBytes(24).toString("hex"),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      predictions: sanitizePredictions(matches, body.predictions),
-      knockoutPredictions: sanitizeKnockoutPredictions(body.knockoutPredictions),
-      bonusPredictions: sanitizeBonusAnswers(body.bonusPredictions),
-    };
+  const existingParticipant = findParticipantByName(participants, pool.id, name);
+  if (existingParticipant) {
+    sendJson(res, 409, {
+      error: "Er bestaat al een inzending met deze naam. Gebruik 'Bestaande inzending openen' om je formulier te bewerken.",
+    });
+    return;
+  }
+
+  const participant = {
+    id: crypto.randomUUID(),
+    poolId: pool.id,
+    name,
+    editToken: crypto.randomBytes(24).toString("hex"),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    predictions: sanitizePredictions(matches, body.predictions),
+    knockoutPredictions: sanitizeKnockoutPredictions(body.knockoutPredictions),
+    bonusPredictions: sanitizeBonusAnswers(body.bonusPredictions),
+  };
 
   participants.push(participant);
   await writeParticipants(participants, "after-create");
@@ -1076,6 +1102,14 @@ async function updateParticipant(res, token, body, pool) {
     return;
   }
 
+  const existingParticipant = findParticipantByName(participants, pool.id, name, participant.id);
+  if (existingParticipant) {
+    sendJson(res, 409, {
+      error: "Er bestaat al een andere inzending met deze naam. Kies een unieke naam.",
+    });
+    return;
+  }
+
   participant.name = name;
   participant.updatedAt = new Date().toISOString();
   participant.predictions = sanitizePredictions(matches, body.predictions);
@@ -1086,8 +1120,18 @@ async function updateParticipant(res, token, body, pool) {
   sendJson(res, 200, toPublicParticipant(participant, competition));
 }
 
-async function handleStandings(res, pool) {
+async function handleStandings(req, res, pool) {
   const { participants, matches, rules, competition } = await getState();
+  const predictionsUnlocked = isDeadlinePassed(competition) || isAdmin(req);
+  if (!predictionsUnlocked) {
+    sendJson(res, 403, {
+      error: "De stand is zichtbaar zodra het toernooi is begonnen.",
+      predictionsUnlocked: false,
+      competition,
+    });
+    return;
+  }
+
   const effectiveRules = buildEffectiveRules(pool, rules || {});
   const poolParticipants = participants.filter((participant) => participant.poolId === pool.id);
   const groupStageMatches = getGroupStageMatches(matches);
@@ -1379,7 +1423,7 @@ async function handleStandings(res, pool) {
     upcomingMatchPredictions,
     knockoutOverview,
     bonusOverview,
-    predictionsUnlocked: isDeadlinePassed(competition),
+    predictionsUnlocked,
   });
 }
 
@@ -1656,7 +1700,7 @@ async function route(req, res) {
       }
 
       if (req.method === "GET" && parts[3] === "standings" && parts.length === 4) {
-        await handleStandings(res, pool);
+        await handleStandings(req, res, pool);
         return;
       }
 

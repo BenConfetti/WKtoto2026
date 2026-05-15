@@ -144,6 +144,16 @@ function renderStandings(standings, unlocked) {
     .join("");
 }
 
+function renderStandingsLocked(message) {
+  document.querySelector("#last-updated-match").textContent = message;
+  document.querySelector("#standings-body").innerHTML = `<tr><td colspan="6">${message}</td></tr>`;
+  document.querySelector("#live-tournament-stats").innerHTML = `<p class="notice">${message}</p>`;
+  document.querySelector("#recent-matches").innerHTML = `<p class="notice">${message}</p>`;
+  document.querySelector("#upcoming-matches").innerHTML = `<p class="notice">${message}</p>`;
+  document.querySelector("#knockout-overview").innerHTML = `<p class="notice">${message}</p>`;
+  document.querySelector("#bonus-overview").innerHTML = `<p class="notice">${message}</p>`;
+}
+
 function renderLiveTournamentStats(stats) {
   const container = document.querySelector("#live-tournament-stats");
   if (!container) {
@@ -549,6 +559,12 @@ async function loadStandings() {
   const data = await response.json();
 
   if (!response.ok) {
+    if (data?.predictionsUnlocked === false || data?.error) {
+      heroPoolName.textContent = data?.pool?.name || "WK Toto 2026";
+      renderStandingsLocked(data.error || "De stand is zichtbaar zodra het toernooi is begonnen.");
+      return;
+    }
+
     body.innerHTML = '<tr><td colspan="6">Stand kon niet geladen worden.</td></tr>';
     return;
   }
@@ -563,7 +579,12 @@ async function loadStandings() {
   renderBonusOverview(data.bonusOverview || [], data.standings, data.predictionsUnlocked);
 }
 
-loadStandings().catch(() => {
+loadStandings().catch((error) => {
   const body = document.querySelector("#standings-body");
+  if (error?.predictionsUnlocked === false || error?.error) {
+    renderStandingsLocked(error.error || "De stand is zichtbaar zodra het toernooi is begonnen.");
+    return;
+  }
+
   body.innerHTML = '<tr><td colspan="6">Stand kon niet geladen worden.</td></tr>';
 });
