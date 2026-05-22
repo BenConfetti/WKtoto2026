@@ -73,7 +73,6 @@ const copyParticipantsButton = document.querySelector("#copy-participants-button
 const copyParticipantsStatus = document.querySelector("#copy-participants-status");
 const resultsStatusBanner = document.querySelector("#results-status-banner");
 const saveResultsButton = document.querySelector("#save-results-button");
-const autoFillKnockoutButton = document.querySelector("#auto-fill-knockout-button");
 const saveLiveStatusButton = document.querySelector("#save-live-status-button");
 const resetLaunchDataButton = document.querySelector("#reset-launch-data-button");
 const resetLaunchDataStatus = document.querySelector("#reset-launch-data-status");
@@ -1557,10 +1556,6 @@ saveResultsButton.addEventListener("click", () => {
   saveResults().catch(() => {
     setResultsStatus("Opslaan mislukt", "warning");
   });
-});
-
-autoFillKnockoutButton.addEventListener("click", () => {
-  applyAutomaticKnockoutState();
 });
 
 knockoutResultsContainer.addEventListener("change", (event) => {

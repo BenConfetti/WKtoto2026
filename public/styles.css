@@ -561,6 +561,7 @@ h3 {
 }
 
 .round-card {
+  min-width: 0;
   padding: 16px;
   border-radius: 6px;
   border: 1px solid rgba(39, 49, 182, 0.12);
@@ -605,6 +606,7 @@ h3 {
 
 .knockout-match-card {
   display: grid;
+  min-width: 0;
   gap: 10px;
   padding: 12px;
   border: 1px solid rgba(39, 49, 182, 0.12);
@@ -624,7 +626,14 @@ h3 {
 .knockout-team-selects {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 1fr;
+}
+
+.knockout-team-selects select,
+.knockout-score-grid select,
+.knockout-score-grid input {
+  min-width: 0;
+  width: 100%;
 }
 
 .knockout-team-selects .round-slot span {
@@ -1472,6 +1481,21 @@ th {
 .admin-score-grid {
   grid-template-columns: minmax(220px, 1fr) 88px 24px 88px minmax(140px, 180px);
   align-items: center;
+}
+
+.knockout-score-grid {
+  grid-template-columns: minmax(0, 1fr) 72px 18px 72px;
+}
+
+.knockout-score-grid > select,
+.knockout-score-grid > .checkbox-inline,
+.knockout-score-grid > .penalty-winner-field {
+  grid-column: 1 / -1;
+}
+
+.penalty-winner-field {
+  display: grid;
+  gap: 6px;
 }
 
 .admin-score-grid .match-title {
