@@ -6226,6 +6226,9 @@ async function init() {
     if (href === "/stand") {
       link.setAttribute("href", `${poolBasePath()}/stand`);
     }
+    if (href === "/stats") {
+      link.setAttribute("href", `${poolBasePath()}/stats`);
+    }
   });
 
   deadlineCopy.textContent = `Je kunt invullen en wijzigen tot ${formatDateTime(state.bootstrap.competition.predictionDeadline)}.`;

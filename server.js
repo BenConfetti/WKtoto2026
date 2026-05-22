@@ -16,6 +16,58 @@ const DEFAULT_POOL_ID = "pool-gerrie-senden-bokaal-wk-toto";
 
 const sessions = new Map();
 
+const bookmakerOdds = {
+  Spanje: 5.5,
+  Frankrijk: 6,
+  Engeland: 7,
+  Argentinië: 9,
+  Brazilië: 9,
+  Portugal: 11,
+  Duitsland: 13,
+  Nederland: 19,
+  Noorwegen: 26,
+  België: 34,
+  Colombia: 41,
+  Marokko: 51,
+  VS: 51,
+  "Verenigde Staten": 51,
+  Japan: 67,
+  Zwitserland: 67,
+  Kroatie: 81,
+  Mexico: 81,
+  Uruguay: 81,
+  Ecuador: 101,
+  Senegal: 101,
+  Turkije: 101,
+  Zweden: 101,
+  Canada: 151,
+  Oostenrijk: 151,
+  Paraguay: 151,
+  "Bosnië en Herzegovina": 251,
+  Schotland: 251,
+  Egypte: 301,
+  Ivoorkust: 301,
+  Tsjechië: 301,
+  Algerije: 401,
+  Ghana: 401,
+  Australië: 501,
+  Iran: 501,
+  Tunesië: 501,
+  "Zuid-Korea": 501,
+  "DR Congo": 751,
+  Qatar: 1001,
+  "Saoedi-Arabië": 1001,
+  "Zuid-Afrika": 1001,
+  Irak: 1501,
+  "Nieuw-Zeeland": 1501,
+  Panama: 1501,
+  Curaçao: 2001,
+  Kaapverdie: 2001,
+  Oezbekistan: 2001,
+  Jordanië: 2501,
+  Haïti: 3001,
+};
+
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -541,6 +593,143 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   return total;
 }
 
+function normalizeStatsTeamName(team) {
+  const value = String(team || "").trim();
+  if (value === "VS") {
+    return "Verenigde Staten";
+  }
+
+  return value;
+}
+
+function getBookmakerOdd(team) {
+  const normalized = normalizeStatsTeamName(team);
+  return bookmakerOdds[team] ?? bookmakerOdds[normalized] ?? null;
+}
+
+function factorial(number) {
+  let result = 1;
+  for (let index = 2; index <= number; index += 1) {
+    result *= index;
+  }
+  return result;
+}
+
+function poissonProbability(goals, expectedGoals) {
+  if (!Number.isInteger(goals) || goals < 0 || !Number.isFinite(expectedGoals) || expectedGoals <= 0) {
+    return null;
+  }
+
+  return (Math.exp(-expectedGoals) * (expectedGoals ** goals)) / factorial(goals);
+}
+
+function predictedScoreProbability(prediction, match) {
+  const homeScore = normalizeScore(prediction?.predictedHomeScore);
+  const awayScore = normalizeScore(prediction?.predictedAwayScore);
+  if (homeScore === null || awayScore === null || !match || match.stage !== "Groepsfase") {
+    return null;
+  }
+
+  const homeOdd = getBookmakerOdd(match.homeTeam);
+  const awayOdd = getBookmakerOdd(match.awayTeam);
+  if (!Number.isFinite(homeOdd) || !Number.isFinite(awayOdd) || homeOdd <= 0 || awayOdd <= 0) {
+    return null;
+  }
+
+  const homeStrength = 1 / homeOdd;
+  const awayStrength = 1 / awayOdd;
+  const strengthSum = homeStrength + awayStrength;
+  if (!strengthSum) {
+    return null;
+  }
+
+  const minimumExpectedGoals = 0.35;
+  const distributedExpectedGoals = 2;
+  const homeExpectedGoals = minimumExpectedGoals + distributedExpectedGoals * (homeStrength / strengthSum);
+  const awayExpectedGoals = minimumExpectedGoals + distributedExpectedGoals * (awayStrength / strengthSum);
+  const homeProbability = poissonProbability(homeScore, homeExpectedGoals);
+  const awayProbability = poissonProbability(awayScore, awayExpectedGoals);
+
+  if (homeProbability === null || awayProbability === null) {
+    return null;
+  }
+
+  return homeProbability * awayProbability;
+}
+
+function countValues(values) {
+  const counts = new Map();
+  for (const rawValue of values) {
+    const value = String(rawValue || "").trim();
+    if (!value) {
+      continue;
+    }
+
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((left, right) => right.count - left.count || left.value.localeCompare(right.value, "nl"));
+}
+
+function computeWillemBindelsScores(participants, matches) {
+  const roundWeights = {
+    secondRound: 1,
+    thirdRound: 2,
+    quarterFinal: 3,
+    semiFinal: 4,
+    final: 5,
+  };
+  const matchById = new Map(matches.map((match) => [match.id, match]));
+
+  return participants
+    .map((participant) => {
+      const groupProbabilities = (participant.predictions || [])
+        .map((prediction) => predictedScoreProbability(prediction, matchById.get(prediction.matchId)))
+        .filter((probability) => Number.isFinite(probability) && probability >= 0);
+      const weightedTeams = new Map();
+      const knockoutPredictions = participant.knockoutPredictions || {};
+
+      for (const [roundKey, teams] of Object.entries(knockoutPredictions)) {
+        const weight = roundWeights[roundKey] || 0;
+        for (const team of teams || []) {
+          const normalizedTeam = normalizeStatsTeamName(team);
+          if (!normalizedTeam || !weight) {
+            continue;
+          }
+          weightedTeams.set(normalizedTeam, Math.max(weightedTeams.get(normalizedTeam) || 0, weight));
+        }
+      }
+
+      const championTeam = normalizeStatsTeamName(participant.bonusPredictions?.championTeam);
+      if (championTeam) {
+        weightedTeams.set(championTeam, Math.max(weightedTeams.get(championTeam) || 0, 6));
+      }
+
+      const weightedPicks = [...weightedTeams.entries()]
+        .map(([team, weight]) => ({ team, weight, odd: getBookmakerOdd(team) }))
+        .filter((entry) => Number.isFinite(entry.odd) && entry.odd > 0);
+      const knockoutWeightSum = weightedPicks.reduce((sum, entry) => sum + entry.weight, 0);
+      const knockoutProbabilitySum = weightedPicks.reduce((sum, entry) => sum + (entry.weight / entry.odd), 0);
+      const groupProbabilitySum = groupProbabilities.reduce((sum, probability) => sum + probability, 0);
+      const groupWeightSum = groupProbabilities.length;
+      const weightSum = groupWeightSum + knockoutWeightSum;
+      const impliedProbabilitySum = groupProbabilitySum + knockoutProbabilitySum;
+      const score = weightSum ? (impliedProbabilitySum / weightSum) * 100 : null;
+      const averageProbability = score;
+
+      return {
+        participantId: participant.id,
+        participantName: participant.name,
+        score: score === null ? null : Number(score.toFixed(2)),
+        averageProbability: averageProbability === null ? null : Number(averageProbability.toFixed(2)),
+        pickCount: groupProbabilities.length + weightedPicks.length,
+      };
+    })
+    .sort((left, right) => (right.score ?? -1) - (left.score ?? -1) || left.participantName.localeCompare(right.participantName, "nl"));
+}
+
 function sanitizeRules(body, previousRules = {}) {
   return {
     exactScorePoints: Number(body.exactScorePoints ?? previousRules.exactScorePoints ?? 3),
@@ -1002,6 +1191,84 @@ async function handleAdminDeleteParticipant(req, res, pool, participantId) {
   sendJson(res, 200, { ok: true });
 }
 
+async function handleAdminCopyParticipants(req, res, sourcePoolId) {
+  if (!isAdmin(req)) {
+    sendJson(res, 401, { error: "Niet ingelogd als admin" });
+    return;
+  }
+
+  const body = await readBody(req);
+  const targetPoolId = String(body.targetPoolId || "").trim();
+  const skipExisting = body.skipExisting !== false;
+  const { participants, pools } = await getState();
+  const sourcePool = findPoolById(pools, sourcePoolId);
+  const targetPool = findPoolById(pools, targetPoolId);
+
+  if (!sourcePool || !targetPool) {
+    sendJson(res, 404, { error: "Pool niet gevonden" });
+    return;
+  }
+
+  if (sourcePool.id === targetPool.id) {
+    sendJson(res, 400, { error: "Kies een andere doelpool om naartoe te kopieren." });
+    return;
+  }
+
+  const sourceParticipants = participants.filter((participant) => participant.poolId === sourcePool.id);
+  const usedTargetNames = new Set(
+    participants
+      .filter((participant) => participant.poolId === targetPool.id)
+      .map((participant) => normalizeParticipantName(participant.name)),
+  );
+  const now = new Date().toISOString();
+  const copiedParticipants = [];
+  let skippedExisting = 0;
+
+  function uniqueTargetName(name) {
+    const baseName = String(name || "Deelnemer").trim() || "Deelnemer";
+    let nextName = baseName;
+    let suffix = 2;
+
+    while (usedTargetNames.has(normalizeParticipantName(nextName))) {
+      nextName = `${baseName} (kopie ${suffix})`;
+      suffix += 1;
+    }
+
+    usedTargetNames.add(normalizeParticipantName(nextName));
+    return nextName;
+  }
+
+  for (const participant of sourceParticipants) {
+    const normalizedName = normalizeParticipantName(participant.name);
+    if (skipExisting && usedTargetNames.has(normalizedName)) {
+      skippedExisting += 1;
+      continue;
+    }
+
+    copiedParticipants.push({
+      ...JSON.parse(JSON.stringify(participant)),
+      id: crypto.randomUUID(),
+      poolId: targetPool.id,
+      name: uniqueTargetName(participant.name),
+      editToken: crypto.randomBytes(24).toString("hex"),
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  if (copiedParticipants.length) {
+    await backupParticipants(participants, "before-copy-participants");
+    await writeParticipants([...participants, ...copiedParticipants], "after-copy-participants");
+  }
+
+  sendJson(res, 200, {
+    copied: copiedParticipants.length,
+    skippedExisting,
+    sourcePool: { id: sourcePool.id, name: sourcePool.name, slug: sourcePool.slug },
+    targetPool: { id: targetPool.id, name: targetPool.name, slug: targetPool.slug },
+  });
+}
+
 function sanitizePredictions(matches, incomingPredictions) {
   const validMatches = getGroupStageMatches(matches);
   const validMatchIds = new Set(validMatches.map((match) => match.id));
@@ -1427,6 +1694,86 @@ async function handleStandings(req, res, pool) {
   });
 }
 
+async function handlePoolStats(req, res, pool) {
+  const { participants, matches, rules, competition } = await getState();
+  const predictionsUnlocked = isDeadlinePassed(competition) || isAdmin(req);
+  if (!predictionsUnlocked) {
+    sendJson(res, 403, {
+      error: "De statistieken zijn zichtbaar zodra het toernooi is begonnen.",
+      predictionsUnlocked: false,
+      competition,
+      pool: {
+        id: pool.id,
+        name: pool.name,
+        slug: pool.slug,
+      },
+    });
+    return;
+  }
+
+  const effectiveRules = buildEffectiveRules(pool, rules || {});
+  const poolParticipants = participants.filter((participant) => participant.poolId === pool.id);
+  const groupStageMatches = getGroupStageMatches(matches);
+  const groupStageMatchById = new Map(groupStageMatches.map((match) => [match.id, match]));
+  const finishedGroupMatches = groupStageMatches.filter((match) => match.status === "finished" && hasCompleteScore(match));
+  const matchPointStats = finishedGroupMatches.map((match) => {
+    const totalPoints = poolParticipants.reduce((sum, participant) => {
+      const prediction = participant.predictions.find((entry) => entry.matchId === match.id);
+      return sum + computeMatchPoints(prediction, match, effectiveRules);
+    }, 0);
+
+    return {
+      match,
+      totalPoints,
+      averagePoints: poolParticipants.length ? Number((totalPoints / poolParticipants.length).toFixed(2)) : 0,
+    };
+  });
+  const sortedByPoints = [...matchPointStats].sort(
+    (left, right) =>
+      right.totalPoints - left.totalPoints ||
+      new Date(left.match.kickoffAt).getTime() - new Date(right.match.kickoffAt).getTime(),
+  );
+  const sortedLowByPoints = [...matchPointStats].sort(
+    (left, right) =>
+      left.totalPoints - right.totalPoints ||
+      new Date(left.match.kickoffAt).getTime() - new Date(right.match.kickoffAt).getTime(),
+  );
+
+  const bonusQuestionFields = [
+    { key: "mostGoalsTeam", label: "Meeste doelpunten" },
+    { key: "mostConcededTeam", label: "Meeste tegendoelpunten" },
+    { key: "bestAfricanTeam", label: "Beste Afrikaans land" },
+    { key: "bestAsianTeam", label: "Beste Aziatisch land" },
+    { key: "bestCentralAmericanTeam", label: "Beste Midden-Amerikaans land" },
+    { key: "bestHostTeam", label: "Beste gastland" },
+  ];
+
+  sendJson(res, 200, {
+    pool: {
+      id: pool.id,
+      name: pool.name,
+      slug: pool.slug,
+    },
+    predictionsUnlocked,
+    participantCount: poolParticipants.length,
+    winnerPredictions: countValues(poolParticipants.map((participant) => participant.bonusPredictions?.championTeam)),
+    countryQuestionPredictions: bonusQuestionFields.map((field) => ({
+      ...field,
+      values: countValues(poolParticipants.map((participant) => participant.bonusPredictions?.[field.key])),
+    })),
+    willemBindelsScores: computeWillemBindelsScores(poolParticipants, matches),
+    groupMatchPointStats: {
+      finishedMatchCount: finishedGroupMatches.length,
+      averagePointsPerFinishedMatch: matchPointStats.length
+        ? Number((matchPointStats.reduce((sum, entry) => sum + entry.averagePoints, 0) / matchPointStats.length).toFixed(2))
+        : null,
+      highestScoringMatch: sortedByPoints[0] || null,
+      lowestScoringMatch: sortedLowByPoints[0] || null,
+    },
+    bookmakerOdds,
+  });
+}
+
 function createAdminSession() {
   const token = crypto.randomBytes(24).toString("hex");
   sessions.set(token, { createdAt: Date.now() });
@@ -1704,6 +2051,11 @@ async function route(req, res) {
         return;
       }
 
+      if (req.method === "GET" && parts[3] === "stats" && parts.length === 4) {
+        await handlePoolStats(req, res, pool);
+        return;
+      }
+
       if (req.method === "POST" && parts[3] === "recover" && parts.length === 4) {
         const body = await readBody(req);
         await handleRecoverParticipant(res, body, pool);
@@ -1774,6 +2126,11 @@ async function route(req, res) {
       return;
     }
 
+    if (req.method === "POST" && parts[0] === "api" && parts[1] === "admin" && parts[2] === "pools" && parts[3] && parts[4] === "participants" && parts[5] === "copy" && parts.length === 6) {
+      await handleAdminCopyParticipants(req, res, parts[3]);
+      return;
+    }
+
     if (req.method === "DELETE" && parts[0] === "api" && parts[1] === "admin" && parts[2] === "pools" && parts[3] && parts[4] === "participants" && parts[5]) {
       const { pools } = await getState();
       const pool = findPoolById(pools, parts[3]);
@@ -1797,6 +2154,14 @@ async function route(req, res) {
       const { pools } = await getState();
       const defaultPool = pools[0];
       res.writeHead(302, { Location: `/pool/${defaultPool.slug}/stand` });
+      res.end();
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/stats") {
+      const { pools } = await getState();
+      const defaultPool = pools[0];
+      res.writeHead(302, { Location: `/pool/${defaultPool.slug}/stats` });
       res.end();
       return;
     }
@@ -1836,6 +2201,11 @@ async function route(req, res) {
 
     if (req.method === "GET" && parts[0] === "pool" && parts[1] && parts[2] === "stand" && parts.length === 3) {
       await serveStatic(res, path.join(PUBLIC_DIR, "stand.html"));
+      return;
+    }
+
+    if (req.method === "GET" && parts[0] === "pool" && parts[1] && parts[2] === "stats" && parts.length === 3) {
+      await serveStatic(res, path.join(PUBLIC_DIR, "stats.html"));
       return;
     }
 

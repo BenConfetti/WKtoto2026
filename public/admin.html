@@ -18,6 +18,7 @@
       <nav class="nav">
         <a href="/">Voorspellen</a>
         <a href="/stand">Stand</a>
+        <a href="/stats">Stats</a>
         <a href="/admin" aria-current="page">Admin</a>
       </nav>
     </header>
@@ -262,6 +263,22 @@
           <span class="pill muted" id="participants-count">0 aangemeld</span>
         </div>
         <p class="notice">Hier kun je als admin altijd alle ingevulde voorspellingen bekijken.</p>
+        <div class="admin-copy-panel">
+          <div class="rule-grid">
+            <label>
+              Kopieer naar pool
+              <select id="copy-target-pool"></select>
+            </label>
+            <label class="checkbox-inline">
+              <input type="checkbox" id="copy-skip-existing" checked>
+              Sla namen over die al in de doelpool staan
+            </label>
+          </div>
+          <div class="actions">
+            <button type="button" id="copy-participants-button">Formulieren dupliceren</button>
+          </div>
+          <p class="notice" id="copy-participants-status">Kies een doelpool om formulieren uit de geselecteerde pool te kopieren.</p>
+        </div>
         <div class="admin-participants" id="admin-participants"></div>
       </section>
 

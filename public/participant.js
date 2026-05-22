@@ -68,6 +68,9 @@ async function init() {
     if (href === "/stand") {
       link.setAttribute("href", `${poolBasePath()}/stand`);
     }
+    if (href === "/stats") {
+      link.setAttribute("href", `${poolBasePath()}/stats`);
+    }
   });
 
   const response = await fetch(poolApiPath(`/public-participants/${participantId}`));

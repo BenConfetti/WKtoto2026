@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WK Toto | Stats</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-brand">
+        <img src="/wk-logo.png" alt="WK 2026 logo">
+        <span>WK Toto 2026</span>
+      </div>
+      <p class="eyebrow">WK Toto</p>
+      <h1>Stats</h1>
+      <p class="hero-pool-name" id="hero-pool-name">Pool wordt geladen...</p>
+      <p class="lede">Voorspellingen per pool samengevat in keuzes, aannemelijkheid en groepswedstrijdpunten.</p>
+      <nav class="nav">
+        <a href="/">Voorspellen</a>
+        <a href="/stand">Stand</a>
+        <a href="/stats" aria-current="page">Stats</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <div class="section-head">
+          <h2>Voorspelde winnaar</h2>
+          <span class="pill muted" id="participant-count">0 deelnemers</span>
+        </div>
+        <div id="winner-chart" class="stats-chart-shell"></div>
+      </section>
+
+      <section class="card">
+        <h2>Open vragen met landen</h2>
+        <div id="country-question-charts" class="stats-chart-grid"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Willem Bindels-score</h2>
+          <span class="pill muted">Wedkantoor-index</span>
+        </div>
+        <p class="notice">Hoe hoger de score, hoe aannemelijker de groepsuitslagen, knock-outprogressie en kampioen zijn op basis van WK-winnaarsquoteringen.</p>
+        <div class="ranking-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Deelnemer</th>
+                <th>Score</th>
+                <th>Gem. kans</th>
+                <th>Items</th>
+              </tr>
+            </thead>
+            <tbody id="willem-bindels-body">
+              <tr><td colspan="5">Stats worden geladen.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Groepswedstrijdpunten</h2>
+        <div class="status-summary-grid" id="group-match-stats">
+          <p class="notice">Stats worden geladen.</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/stats.js" defer></script>
+  </body>
+</html>

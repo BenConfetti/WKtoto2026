@@ -66,6 +66,10 @@ const matchList = document.querySelector("#admin-match-list");
 const knockoutResultsContainer = document.querySelector("#admin-knockout-results");
 const participantsCount = document.querySelector("#participants-count");
 const participantsList = document.querySelector("#admin-participants");
+const copyTargetPoolSelect = document.querySelector("#copy-target-pool");
+const copySkipExistingInput = document.querySelector("#copy-skip-existing");
+const copyParticipantsButton = document.querySelector("#copy-participants-button");
+const copyParticipantsStatus = document.querySelector("#copy-participants-status");
 const resultsStatusBanner = document.querySelector("#results-status-banner");
 const saveResultsButton = document.querySelector("#save-results-button");
 const saveLiveStatusButton = document.querySelector("#save-live-status-button");
@@ -203,6 +207,10 @@ function getPoolInviteLink(pool) {
 
 function getPoolStandLink(pool) {
   return `${window.location.origin}/pool/${pool.slug}/stand`;
+}
+
+function getPoolStatsLink(pool) {
+  return `${window.location.origin}/pool/${pool.slug}/stats`;
 }
 
 function getGroupStageMatches(matches) {
@@ -425,6 +433,7 @@ function syncLiveStatusInputs(rules) {
 function renderPools(pools) {
   adminPools = pools;
   poolCount.textContent = `${pools.length} pools`;
+  renderCopyTargetPools();
   poolList.innerHTML = pools
     .map((pool) => `
       <article class="admin-pool-card ${pool.id === selectedPoolId ? "is-active" : ""}">
@@ -436,11 +445,27 @@ function renderPools(pools) {
           <button type="button" class="secondary-action admin-copy-invite" data-invite-link="${getPoolInviteLink(pool)}">Kopieer invite-link</button>
           <button type="button" class="secondary-action admin-copy-stand" data-stand-link="${getPoolStandLink(pool)}">Kopieer stand-link</button>
           <a class="secondary-action" href="${getPoolStandLink(pool)}" target="_blank" rel="noreferrer">Open stand</a>
+          <a class="secondary-action" href="${getPoolStatsLink(pool)}" target="_blank" rel="noreferrer">Open stats</a>
           <button type="button" class="secondary-action admin-select-pool" data-pool-id="${pool.id}">Open pool</button>
         </div>
       </article>
     `)
     .join("");
+}
+
+function renderCopyTargetPools() {
+  if (!copyTargetPoolSelect) {
+    return;
+  }
+
+  const targetPools = adminPools.filter((pool) => pool.id !== selectedPoolId);
+  copyTargetPoolSelect.innerHTML = targetPools
+    .map((pool) => `<option value="${pool.id}">${pool.name}</option>`)
+    .join("");
+  copyParticipantsButton.disabled = targetPools.length === 0;
+  if (!targetPools.length) {
+    copyTargetPoolSelect.innerHTML = '<option value="">Geen andere pool beschikbaar</option>';
+  }
 }
 
 async function loadPools() {
@@ -925,6 +950,47 @@ async function deleteParticipant(participantId) {
   }
 }
 
+async function copyParticipantsToPool() {
+  const targetPoolId = copyTargetPoolSelect.value;
+  if (!selectedPoolId || !targetPoolId) {
+    copyParticipantsStatus.textContent = "Kies eerst een bronpool en een andere doelpool.";
+    return;
+  }
+
+  const sourcePool = getSelectedPool();
+  const targetPool = adminPools.find((pool) => pool.id === targetPoolId);
+  const confirmed = window.confirm(
+    `Weet je zeker dat je alle formulieren van ${sourcePool?.name || "deze pool"} wilt dupliceren naar ${targetPool?.name || "de doelpool"}?`,
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  copyParticipantsButton.disabled = true;
+  copyParticipantsStatus.textContent = "Formulieren worden gekopieerd...";
+
+  try {
+    const response = await fetch(`/api/admin/pools/${selectedPoolId}/participants/copy`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        targetPoolId,
+        skipExisting: copySkipExistingInput.checked,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Dupliceren mislukt");
+    }
+
+    copyParticipantsStatus.textContent = `${data.copied} formulier(en) gekopieerd naar ${data.targetPool?.name || "de doelpool"}. ${data.skippedExisting} bestaande naam/namen overgeslagen.`;
+  } finally {
+    copyParticipantsButton.disabled = false;
+  }
+}
+
 async function resetLaunchData() {
   resetLaunchDataStatus.textContent = "Schoonzetten...";
   const response = await fetch("/api/admin/reset-launch-data", {
@@ -984,6 +1050,13 @@ resetLaunchDataButton.addEventListener("click", () => {
 
   resetLaunchData().catch((error) => {
     resetLaunchDataStatus.textContent = error.message || "Schoonzetten mislukt";
+  });
+});
+
+copyParticipantsButton.addEventListener("click", () => {
+  copyParticipantsToPool().catch((error) => {
+    copyParticipantsStatus.textContent = error.message || "Dupliceren mislukt";
+    copyParticipantsButton.disabled = false;
   });
 });
 

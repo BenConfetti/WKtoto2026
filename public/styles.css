@@ -1298,6 +1298,28 @@ th {
   gap: 16px;
 }
 
+.admin-copy-panel {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid rgba(39, 49, 182, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.checkbox-inline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  align-self: end;
+  min-height: 42px;
+}
+
+.checkbox-inline input {
+  width: auto;
+}
+
 .admin-participant-overview {
   display: grid;
   gap: 10px;
@@ -1445,6 +1467,57 @@ th {
   margin-bottom: 0;
 }
 
+.stats-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.stats-chart-shell {
+  max-width: 620px;
+}
+
+.stats-chart-card {
+  display: grid;
+  gap: 12px;
+}
+
+.stats-chart-card h3 {
+  margin: 0;
+}
+
+.stats-chart-content {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.stats-chart-content canvas {
+  width: 180px;
+  height: 180px;
+  max-width: 100%;
+}
+
+.stats-legend {
+  display: grid;
+  gap: 8px;
+}
+
+.stats-legend-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.94rem;
+}
+
+.stats-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
 @media (max-width: 720px) {
   .standings-table {
     min-width: 720px;
@@ -1503,6 +1576,10 @@ th {
 
   .admin-team-grid,
   .admin-score-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-chart-content {
     grid-template-columns: 1fr;
   }
 
