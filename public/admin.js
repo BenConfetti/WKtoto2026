@@ -78,6 +78,7 @@ const saveLiveStatusButton = document.querySelector("#save-live-status-button");
 const resetLaunchDataButton = document.querySelector("#reset-launch-data-button");
 const resetLaunchDataStatus = document.querySelector("#reset-launch-data-status");
 const eliminatedTeamsContainer = document.querySelector("#admin-eliminated-teams");
+const qualifiedSecondRoundContainer = document.querySelector("#admin-qualified-second-round-teams");
 
 const ruleFields = [
   "publicRulesTitle",
@@ -276,6 +277,15 @@ function renderEliminatedTeams(selectedTeams = []) {
   renderCheckboxList("admin-eliminated-teams", countries, selectedTeams);
 }
 
+function renderQualifiedSecondRoundTeams(selectedTeams = []) {
+  if (!qualifiedSecondRoundContainer) {
+    return;
+  }
+
+  const countries = getCountryOptionsFromMatches(adminMatches);
+  renderCheckboxList("admin-qualified-second-round-teams", countries, selectedTeams);
+}
+
 function renderKnockoutResults(rules) {
   if (!knockoutResultsContainer) {
     return;
@@ -330,6 +340,20 @@ function renderKnockoutResults(rules) {
             <option value="scheduled" ${match.status === "scheduled" ? "selected" : ""}>Gepland</option>
             <option value="finished" ${match.status === "finished" ? "selected" : ""}>Afgelopen</option>
           </select>
+          <label class="checkbox-inline">
+            <input type="checkbox" data-knockout-match-id="${match.id}" data-field="afterExtraTime" ${match.afterExtraTime ? "checked" : ""}>
+            Na verlenging
+          </label>
+          <label class="penalty-winner-field">
+            Wint na strafschoppen
+            <select data-knockout-match-id="${match.id}" data-field="penaltyWinnerTeam">
+              <option value="">Niet van toepassing</option>
+              ${[homeValue, awayValue]
+                .filter(Boolean)
+                .map((team) => `<option value="${team}" ${match.penaltyWinnerTeam === team ? "selected" : ""}>${team}</option>`)
+                .join("")}
+            </select>
+          </label>
         </div>
       `;
 
@@ -383,6 +407,37 @@ function collectKnockoutResultsFromForm() {
   return result;
 }
 
+function applyKnockoutRoundValues(roundValues) {
+  for (const round of rounds) {
+    const values = roundValues[round.key] || [];
+    document.querySelectorAll(`[data-actual-round-key="${round.key}"]`).forEach((input, index) => {
+      if (values[index]) {
+        input.value = values[index];
+      }
+    });
+  }
+  refreshPenaltyWinnerOptions();
+}
+
+function refreshPenaltyWinnerOptions() {
+  for (const entry of collectKnockoutRoundEntries()) {
+    const select = document.querySelector(`[data-knockout-match-id="${entry.match.id}"][data-field="penaltyWinnerTeam"]`);
+    if (!select) {
+      continue;
+    }
+    const currentValue = select.value;
+    const options = [entry.homeTeam, entry.awayTeam].filter(Boolean);
+    select.innerHTML = '<option value="">Niet van toepassing</option>';
+    for (const team of options) {
+      const option = document.createElement("option");
+      option.value = team;
+      option.textContent = team;
+      option.selected = currentValue === team;
+      select.appendChild(option);
+    }
+  }
+}
+
 function syncBonusResultInputs(rules) {
   const countries = getCountryOptionsFromMatches(adminMatches);
   const africanCountries = filterAvailableTeams(adminMatches, AFRICAN_TEAMS);
@@ -430,20 +485,12 @@ function syncBonusResultInputs(rules) {
 function syncLiveStatusInputs(rules) {
   const liveTopScorerInput = document.querySelector("#liveCurrentTopScorer");
   const liveDutchTopScorerInput = document.querySelector("#liveCurrentDutchTopScorer");
-  const liveKnockoutGoalsInput = document.querySelector("#liveKnockoutGoalsSoFar");
-  const liveKnockoutMatchesInput = document.querySelector("#liveKnockoutFinishedMatches");
 
   if (liveTopScorerInput) {
     liveTopScorerInput.value = rules?.liveLeaders?.currentTopScorer || "";
   }
   if (liveDutchTopScorerInput) {
     liveDutchTopScorerInput.value = rules?.liveLeaders?.currentDutchTopScorer || "";
-  }
-  if (liveKnockoutGoalsInput) {
-    liveKnockoutGoalsInput.value = rules?.liveLeaders?.knockoutGoalsSoFar ?? 0;
-  }
-  if (liveKnockoutMatchesInput) {
-    liveKnockoutMatchesInput.value = rules?.liveLeaders?.knockoutFinishedMatches ?? 0;
   }
 }
 
@@ -658,14 +705,6 @@ function collectLiveLeadersPayload() {
   return {
     currentTopScorer: document.querySelector("#liveCurrentTopScorer")?.value || "",
     currentDutchTopScorer: document.querySelector("#liveCurrentDutchTopScorer")?.value || "",
-    knockoutGoalsSoFar:
-      (document.querySelector("#liveKnockoutGoalsSoFar")?.value ?? "") === ""
-        ? 0
-        : Number(document.querySelector("#liveKnockoutGoalsSoFar").value),
-    knockoutFinishedMatches:
-      (document.querySelector("#liveKnockoutFinishedMatches")?.value ?? "") === ""
-        ? 0
-        : Number(document.querySelector("#liveKnockoutFinishedMatches").value),
   };
 }
 
@@ -683,6 +722,137 @@ function setSelectValue(selectId, value) {
   }
 }
 
+function getGroupKey(match) {
+  const code = String(match.homeSlotCode || match.awaySlotCode || "").trim();
+  const result = /^([A-Z])/.exec(code);
+  return result ? result[1] : null;
+}
+
+function getGroupContexts(matches) {
+  const groups = new Map();
+
+  for (const match of getGroupStageMatches(matches)) {
+    const groupKey = getGroupKey(match);
+    if (!groupKey) {
+      continue;
+    }
+
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, { key: groupKey, teams: new Set(), matches: [] });
+    }
+
+    const group = groups.get(groupKey);
+    group.teams.add(match.homeTeam);
+    group.teams.add(match.awayTeam);
+    group.matches.push(match);
+  }
+
+  return [...groups.values()].map((group) => ({
+    key: group.key,
+    teams: [...group.teams].sort((left, right) => left.localeCompare(right, "nl")),
+    matches: group.matches,
+  }));
+}
+
+function createTeamStats(team, groupKey) {
+  return {
+    team,
+    groupKey,
+    played: 0,
+    points: 0,
+    wins: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+    goalDifference: 0,
+  };
+}
+
+function applyResult(homeStats, awayStats, homeScore, awayScore) {
+  homeStats.played += 1;
+  awayStats.played += 1;
+  homeStats.goalsFor += homeScore;
+  homeStats.goalsAgainst += awayScore;
+  awayStats.goalsFor += awayScore;
+  awayStats.goalsAgainst += homeScore;
+  homeStats.goalDifference = homeStats.goalsFor - homeStats.goalsAgainst;
+  awayStats.goalDifference = awayStats.goalsFor - awayStats.goalsAgainst;
+
+  if (homeScore > awayScore) {
+    homeStats.wins += 1;
+    homeStats.points += 3;
+    return;
+  }
+  if (homeScore < awayScore) {
+    awayStats.wins += 1;
+    awayStats.points += 3;
+    return;
+  }
+  homeStats.points += 1;
+  awayStats.points += 1;
+}
+
+function compareStats(left, right) {
+  return (
+    right.points - left.points ||
+    right.goalDifference - left.goalDifference ||
+    right.goalsFor - left.goalsFor ||
+    left.team.localeCompare(right.team, "nl")
+  );
+}
+
+function buildActualGroupSnapshot() {
+  const collectedById = new Map(collectMatchesFromForm().map((match) => [match.id, match]));
+  const groups = getGroupContexts(adminMatches).map((group) => {
+    const statsMap = new Map(group.teams.map((team) => [team, createTeamStats(team, group.key)]));
+    let completedMatches = 0;
+
+    for (const match of group.matches) {
+      const collected = collectedById.get(match.id);
+      if (!collected || collected.status !== "finished" || collected.homeScore === null || collected.awayScore === null) {
+        continue;
+      }
+      completedMatches += 1;
+      applyResult(statsMap.get(match.homeTeam), statsMap.get(match.awayTeam), collected.homeScore, collected.awayScore);
+    }
+
+    return {
+      key: group.key,
+      completedMatches,
+      totalMatches: group.matches.length,
+      table: [...group.teams]
+        .map((team) => statsMap.get(team))
+        .sort(compareStats)
+        .map((entry, index) => ({ ...entry, rank: index + 1 })),
+    };
+  });
+  const completedGroups = groups.filter((group) => group.completedMatches === group.totalMatches);
+  const thirdPlaceRanking = completedGroups
+    .map((group) => group.table.find((entry) => entry.rank === 3))
+    .filter(Boolean)
+    .sort(compareStats);
+  const allGroupsComplete = completedGroups.length === groups.length && groups.length > 0;
+
+  return {
+    groups,
+    secondRoundTeams: [
+      ...completedGroups.flatMap((group) => group.table.filter((entry) => entry.rank <= 2).map((entry) => entry.team)),
+      ...(allGroupsComplete ? thirdPlaceRanking.slice(0, 8).map((entry) => entry.team) : []),
+    ],
+  };
+}
+
+function getTeamForGroupSlot(snapshot, slotCode) {
+  const match = /^([12])([A-L])$/.exec(String(slotCode || ""));
+  if (!match) {
+    return "";
+  }
+  const group = snapshot.groups.find((entry) => entry.key === match[2]);
+  if (!group || group.completedMatches !== group.totalMatches) {
+    return "";
+  }
+  return group?.table.find((entry) => entry.rank === Number(match[1]))?.team || "";
+}
+
 function collectKnockoutRoundEntries() {
   const entries = [];
 
@@ -695,6 +865,9 @@ function collectKnockoutRoundEntries() {
       const awayTeam = selects[index * 2 + 1]?.value.trim() || "";
       const read = (field) =>
         document.querySelector(`[data-knockout-match-id="${match.id}"][data-field="${field}"]`)?.value ?? "";
+      const afterExtraTime = document.querySelector(
+        `[data-knockout-match-id="${match.id}"][data-field="afterExtraTime"]`,
+      )?.checked;
       entries.push({
         roundKey: round.key,
         match,
@@ -703,6 +876,8 @@ function collectKnockoutRoundEntries() {
         homeScore: read("homeScore") === "" ? null : Number(read("homeScore")),
         awayScore: read("awayScore") === "" ? null : Number(read("awayScore")),
         status: read("status"),
+        afterExtraTime: Boolean(afterExtraTime),
+        penaltyWinnerTeam: read("penaltyWinnerTeam"),
       });
     });
   }
@@ -715,6 +890,22 @@ function computeAutomaticKnockoutState() {
   const countrySet = new Set(countries);
   const roundValues = collectKnockoutResultsFromForm();
   const knockoutEntries = collectKnockoutRoundEntries();
+  const groupSnapshot = buildActualGroupSnapshot();
+  const qualifiedSecondRoundTeams = new Set([
+    ...getCheckedValues("admin-qualified-second-round-teams"),
+    ...groupSnapshot.secondRoundTeams,
+  ]);
+  const secondRoundMatches = getKnockoutMatchesByRoundKey(adminMatches, "secondRound");
+  const secondRoundSlotValues = [];
+  secondRoundMatches.forEach((match) => {
+    const homeTeam = getTeamForGroupSlot(groupSnapshot, match.homeSlotCode);
+    const awayTeam = getTeamForGroupSlot(groupSnapshot, match.awaySlotCode);
+    secondRoundSlotValues.push(homeTeam || "", awayTeam || "");
+  });
+  if (secondRoundSlotValues.some(Boolean)) {
+    roundValues.secondRound = secondRoundSlotValues;
+    secondRoundSlotValues.filter(Boolean).forEach((team) => qualifiedSecondRoundTeams.add(team));
+  }
   const allFinishedMatches = [
     ...collectMatchesFromForm().filter((match) => match.status === "finished"),
   ];
@@ -755,14 +946,39 @@ function computeAutomaticKnockoutState() {
   }
 
   const finalEntry = knockoutEntries.find((entry) => entry.roundKey === "final" && entry.status === "finished");
+  function winnerForEntry(entry) {
+    if (!entry || entry.status !== "finished" || !entry.homeTeam || !entry.awayTeam) {
+      return "";
+    }
+    if (entry.homeScore > entry.awayScore) {
+      return entry.homeTeam;
+    }
+    if (entry.awayScore > entry.homeScore) {
+      return entry.awayTeam;
+    }
+    return entry.penaltyWinnerTeam || "";
+  }
+
   const championTeam =
-    finalEntry && finalEntry.homeTeam && finalEntry.awayTeam && finalEntry.homeScore !== finalEntry.awayScore
-      ? finalEntry.homeScore > finalEntry.awayScore
-        ? finalEntry.homeTeam
-        : finalEntry.awayTeam
-      : "";
+    winnerForEntry(finalEntry);
+  for (let index = 0; index < rounds.length - 1; index += 1) {
+    const currentRound = rounds[index];
+    const nextRound = rounds[index + 1];
+    const nextValues = [...(roundValues[nextRound.key] || [])];
+    const currentEntries = knockoutEntries.filter((entry) => entry.roundKey === currentRound.key);
+    currentEntries.forEach((entry, matchIndex) => {
+      const winner = winnerForEntry(entry);
+      if (!winner) {
+        return;
+      }
+      nextValues[matchIndex] = nextValues[matchIndex] || winner;
+    });
+    if (nextValues.some(Boolean)) {
+      roundValues[nextRound.key] = nextValues;
+    }
+  }
   const eliminatedTeams = new Set(getCheckedValues("admin-eliminated-teams"));
-  const secondRoundTeams = new Set(roundValues.secondRound || []);
+  const secondRoundTeams = new Set([...(roundValues.secondRound || []), ...qualifiedSecondRoundTeams]);
   if (secondRoundTeams.size >= 32) {
     countries.forEach((country) => {
       if (!secondRoundTeams.has(country)) {
@@ -793,8 +1009,14 @@ function computeAutomaticKnockoutState() {
   }
 
   const latestRound = [...rounds].reverse().find((round) => (roundValues[round.key] || []).length);
-  const latestRoundTeams = new Set(latestRound ? roundValues[latestRound.key] || [] : []);
+  const latestRoundTeams = new Set(latestRound ? roundValues[latestRound.key] || [] : qualifiedSecondRoundTeams);
+  if (!latestRound || latestRound.key === "secondRound") {
+    qualifiedSecondRoundTeams.forEach((team) => latestRoundTeams.add(team));
+  }
   const reachedRank = new Map(countries.map((country) => [country, 0]));
+  qualifiedSecondRoundTeams.forEach((team) => {
+    reachedRank.set(team, Math.max(reachedRank.get(team) || 0, 1));
+  });
   rounds.forEach((round, index) => {
     (roundValues[round.key] || []).forEach((team) => {
       reachedRank.set(team, Math.max(reachedRank.get(team) || 0, index + 1));
@@ -823,6 +1045,8 @@ function computeAutomaticKnockoutState() {
     bestCentralAmericanTeams: bestCategoryTeams(CENTRAL_AMERICAN_TEAMS),
     bestHostTeams: bestCategoryTeams(HOST_TEAMS),
     eliminatedTeams: [...eliminatedTeams],
+    qualifiedSecondRoundTeams: [...qualifiedSecondRoundTeams],
+    roundValues,
     knockoutGoals,
     knockoutFinishedMatches,
     totalGoals,
@@ -831,6 +1055,7 @@ function computeAutomaticKnockoutState() {
 
 function applyAutomaticKnockoutState() {
   const derived = computeAutomaticKnockoutState();
+  applyKnockoutRoundValues(derived.roundValues);
   setSelectValue("bonusResultChampionTeam", derived.championTeam);
   setSelectValue("bonusResultMostGoalsTeam", derived.mostGoalsTeams[0] || "");
   setSelectValue("bonusResultMostConcededTeam", derived.mostConcededTeams[0] || "");
@@ -847,15 +1072,7 @@ function applyAutomaticKnockoutState() {
     setCheckedValues("bonusResultBestHostTeamList", derived.bestHostTeams);
   }
   setCheckedValues("admin-eliminated-teams", derived.eliminatedTeams);
-
-  const liveKnockoutGoalsInput = document.querySelector("#liveKnockoutGoalsSoFar");
-  const liveKnockoutMatchesInput = document.querySelector("#liveKnockoutFinishedMatches");
-  if (liveKnockoutGoalsInput) {
-    liveKnockoutGoalsInput.value = derived.knockoutGoals;
-  }
-  if (liveKnockoutMatchesInput) {
-    liveKnockoutMatchesInput.value = derived.knockoutFinishedMatches;
-  }
+  setCheckedValues("admin-qualified-second-round-teams", derived.qualifiedSecondRoundTeams);
   if (derived.championTeam) {
     const totalGoalsInput = document.querySelector("#bonusResultTotalGoals");
     if (totalGoalsInput) {
@@ -957,11 +1174,13 @@ async function loadMatches() {
     ...(currentRules || {}),
     knockoutResults: data.knockoutResults || currentRules?.knockoutResults || {},
     eliminatedTeams: data.eliminatedTeams || currentRules?.eliminatedTeams || [],
+    qualifiedSecondRoundTeams: data.qualifiedSecondRoundTeams || currentRules?.qualifiedSecondRoundTeams || [],
   };
   renderKnockoutResults(currentRules);
   syncBonusResultInputs(currentRules);
   syncLiveStatusInputs(currentRules);
   renderEliminatedTeams(currentRules.eliminatedTeams || []);
+  renderQualifiedSecondRoundTeams(currentRules.qualifiedSecondRoundTeams || []);
 }
 
 function collectMatchesFromForm() {
@@ -979,6 +1198,9 @@ function collectMatchesFromForm() {
   const knockoutMatches = getKnockoutStageMatches(adminMatches).map((match) => {
     const read = (field) =>
       document.querySelector(`[data-knockout-match-id="${match.id}"][data-field="${field}"]`)?.value ?? "";
+    const afterExtraTime = document.querySelector(
+      `[data-knockout-match-id="${match.id}"][data-field="afterExtraTime"]`,
+    )?.checked;
     return {
       id: match.id,
       homeTeam: match.homeTeam,
@@ -986,6 +1208,8 @@ function collectMatchesFromForm() {
       homeScore: read("homeScore") === "" ? null : Number(read("homeScore")),
       awayScore: read("awayScore") === "" ? null : Number(read("awayScore")),
       status: read("status"),
+      afterExtraTime: Boolean(afterExtraTime),
+      penaltyWinnerTeam: read("penaltyWinnerTeam"),
     };
   });
 
@@ -996,6 +1220,8 @@ function validateMatchesBeforeSave(matches) {
   for (const match of matches) {
     const hasHome = match.homeScore !== null;
     const hasAway = match.awayScore !== null;
+    const originalMatch = adminMatches.find((entry) => entry.id === match.id);
+    const isKnockout = rounds.some((round) => round.label === originalMatch?.stage);
 
     if (hasHome !== hasAway) {
       return `Vul voor ${match.homeTeam} - ${match.awayTeam} beide scores in, of laat ze allebei leeg.`;
@@ -1003,6 +1229,23 @@ function validateMatchesBeforeSave(matches) {
 
     if (match.status === "finished" && (!hasHome || !hasAway)) {
       return `Je kunt ${match.homeTeam} - ${match.awayTeam} pas op afgelopen zetten als beide scores zijn ingevuld.`;
+    }
+
+    if (isKnockout && match.status === "finished" && match.homeScore === match.awayScore && !match.penaltyWinnerTeam) {
+      return `Kies bij ${match.homeTeam} - ${match.awayTeam} welk land na strafschoppen wint.`;
+    }
+
+    if (
+      isKnockout &&
+      match.status === "finished" &&
+      match.homeScore === match.awayScore &&
+      !collectKnockoutRoundEntries().some(
+        (entry) =>
+          entry.match.id === match.id &&
+          (entry.homeTeam === match.penaltyWinnerTeam || entry.awayTeam === match.penaltyWinnerTeam),
+      )
+    ) {
+      return `Kies bij ${match.homeTeam} - ${match.awayTeam} een geldig land als winnaar na strafschoppen.`;
     }
   }
 
@@ -1049,6 +1292,7 @@ async function saveResults() {
     matches: collectedMatches,
     knockoutResults: collectKnockoutResultsFromForm(),
     eliminatedTeams: getCheckedValues("admin-eliminated-teams"),
+    qualifiedSecondRoundTeams: getCheckedValues("admin-qualified-second-round-teams"),
   };
 
   try {
@@ -1071,12 +1315,14 @@ async function saveResults() {
       ...(currentRules || {}),
       knockoutResults: data.knockoutResults || {},
       eliminatedTeams: data.eliminatedTeams || [],
+      qualifiedSecondRoundTeams: data.qualifiedSecondRoundTeams || [],
     };
     renderMatches(adminMatches);
     renderKnockoutResults(currentRules);
     syncBonusResultInputs(currentRules);
     syncLiveStatusInputs(currentRules);
     renderEliminatedTeams(currentRules.eliminatedTeams || []);
+    renderQualifiedSecondRoundTeams(currentRules.qualifiedSecondRoundTeams || []);
     await loadParticipants();
     const successMessage = `Werkelijke uitslagen en antwoorden opgeslagen op ${formatDateTime(new Date().toISOString())}.`;
     setResultsStatus(successMessage, "success");
@@ -1322,6 +1568,10 @@ knockoutResultsContainer.addEventListener("change", (event) => {
     return;
   }
 
+  applyAutomaticKnockoutState();
+});
+
+matchList.addEventListener("change", () => {
   applyAutomaticKnockoutState();
 });
 

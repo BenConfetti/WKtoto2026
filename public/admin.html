@@ -177,14 +177,6 @@
             Huidige topscorer van Nederland
             <input type="text" id="liveCurrentDutchTopScorer" placeholder="Bijvoorbeeld: Memphis Depay">
           </label>
-          <label>
-            Doelpunten in knock-out tot nu toe
-            <input type="number" id="liveKnockoutGoalsSoFar" min="0">
-          </label>
-          <label>
-            Afgelopen knock-outwedstrijden tot nu toe
-            <input type="number" id="liveKnockoutFinishedMatches" min="0">
-          </label>
         </div>
         <div class="actions">
           <button type="button" id="save-live-status-button">Voorlopige tussenstanden opslaan</button>
@@ -256,6 +248,11 @@
           <h3>Uitgeschakelde landen</h3>
           <p class="notice">Vink hier landen aan die niet meer in het toernooi zitten. Daarmee kunnen foutieve knock-outkeuzes en de vraag over de wereldkampioen alvast rood worden gemarkeerd.</p>
           <div class="checkbox-list" id="admin-eliminated-teams"></div>
+        </section>
+        <section class="admin-stage">
+          <h3>Gekwalificeerd voor tweede ronde</h3>
+          <p class="notice">Vink landen aan die zeker in de tweede ronde staan, ook als hun exacte tweede-rondewedstrijd nog niet bekend is.</p>
+          <div class="checkbox-list" id="admin-qualified-second-round-teams"></div>
         </section>
         <p class="notice" id="results-status">Nog geen wijzigingen opgeslagen.</p>
       </section>

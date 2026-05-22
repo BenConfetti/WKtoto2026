@@ -367,6 +367,10 @@ function sanitizeTeamList(values) {
   return uniqueNormalized(values);
 }
 
+function sanitizeQualifiedSecondRoundTeams(values) {
+  return sanitizeTeamList(values);
+}
+
 function sanitizeLiveLeaders(payload, previous = {}) {
   return {
     currentTopScorer: String(payload?.currentTopScorer ?? previous.currentTopScorer ?? "").trim(),
@@ -402,6 +406,11 @@ function computeKnockoutPoints(knockoutPredictions, knockoutResults, rules) {
   for (const [roundKey, points] of Object.entries(roundPoints)) {
     const predicted = uniqueNormalized(knockoutPredictions[roundKey]);
     const actual = new Set(uniqueNormalized(knockoutResults[roundKey]));
+    if (roundKey === "secondRound") {
+      for (const team of sanitizeQualifiedSecondRoundTeams(rules.qualifiedSecondRoundTeams || [])) {
+        actual.add(team);
+      }
+    }
 
     for (const team of predicted) {
       if (actual.has(team)) {
@@ -569,6 +578,8 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   ).map(normalizeFreeText);
 
   const finalOpenQuestionsUnlocked = Boolean(bonusResults.championTeam);
+  const dutchTopScorerUnlocked =
+    finalOpenQuestionsUnlocked || sanitizeTeamList(rules.eliminatedTeams || []).includes("Nederland");
 
   if (
     finalOpenQuestionsUnlocked &&
@@ -584,7 +595,7 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
       : bonusResults.topScorerNetherlands,
   ).map(normalizeFreeText);
   if (
-    finalOpenQuestionsUnlocked &&
+    dutchTopScorerUnlocked &&
     bonusPredictions.topScorerNetherlands &&
     acceptedDutchTopScorers.includes(normalizeFreeText(bonusPredictions.topScorerNetherlands))
   ) {
@@ -765,6 +776,9 @@ function sanitizeRules(body, previousRules = {}) {
     publicRulesBody: String(body.publicRulesBody ?? previousRules.publicRulesBody ?? "").trim(),
     knockoutResults: sanitizeKnockoutResults(body.knockoutResults, previousRules.knockoutResults),
     eliminatedTeams: sanitizeTeamList(body.eliminatedTeams ?? previousRules.eliminatedTeams ?? []),
+    qualifiedSecondRoundTeams: sanitizeQualifiedSecondRoundTeams(
+      body.qualifiedSecondRoundTeams ?? previousRules.qualifiedSecondRoundTeams ?? [],
+    ),
     liveLeaders: sanitizeLiveLeaders(body.liveLeaders, previousRules.liveLeaders),
     bonusResults: sanitizeBonusResults(body.bonusResults ?? previousRules.bonusResults ?? {}),
   };
@@ -808,6 +822,7 @@ function buildEffectiveRules(pool, globalRules) {
     bonusResults: sanitizeBonusResults(globalRules?.bonusResults ?? {}),
     knockoutResults: sanitizeKnockoutResults(globalRules?.knockoutResults),
     eliminatedTeams: sanitizeTeamList(globalRules?.eliminatedTeams ?? []),
+    qualifiedSecondRoundTeams: sanitizeQualifiedSecondRoundTeams(globalRules?.qualifiedSecondRoundTeams ?? []),
     liveLeaders: sanitizeLiveLeaders(globalRules?.liveLeaders ?? {}),
   };
 }
@@ -917,7 +932,9 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "topScorerNetherlands") {
-    if (!bonusResults.championTeam) {
+    const dutchTopScorerUnlocked =
+      Boolean(bonusResults.championTeam) || sanitizeTeamList(rules.eliminatedTeams || []).includes("Nederland");
+    if (!dutchTopScorerUnlocked) {
       return "pending";
     }
 
@@ -1470,9 +1487,19 @@ async function handleStandings(req, res, pool) {
 
   const manualKnockoutGoalsSoFar = Number(effectiveRules.liveLeaders?.knockoutGoalsSoFar ?? 0);
   const manualKnockoutFinishedMatches = Number(effectiveRules.liveLeaders?.knockoutFinishedMatches ?? 0);
-  const finishedMatchCount = finishedWithScores.length + manualKnockoutFinishedMatches;
+  const legacyKnockoutGoalsSoFar = matches.some(
+    (match) => knockoutRoundDefinitions.some((round) => round.label === match.stage) && match.status === "finished",
+  )
+    ? 0
+    : manualKnockoutGoalsSoFar;
+  const legacyKnockoutFinishedMatches = matches.some(
+    (match) => knockoutRoundDefinitions.some((round) => round.label === match.stage) && match.status === "finished",
+  )
+    ? 0
+    : manualKnockoutFinishedMatches;
+  const finishedMatchCount = finishedWithScores.length + legacyKnockoutFinishedMatches;
   const totalGoalsSoFar =
-    finishedWithScores.reduce((sum, match) => sum + match.homeScore + match.awayScore, 0) + manualKnockoutGoalsSoFar;
+    finishedWithScores.reduce((sum, match) => sum + match.homeScore + match.awayScore, 0) + legacyKnockoutGoalsSoFar;
   const projectedTotalGoals =
     finishedMatchCount > 0 ? Math.round((totalGoalsSoFar / finishedMatchCount) * 104) : null;
   const highestScored = Math.max(0, ...[...teamStats.values()].map((entry) => entry.scored));
@@ -1560,7 +1587,10 @@ async function handleStandings(req, res, pool) {
       match,
       entries: poolParticipants.map((participant) => {
         const values = participant.knockoutPredictions?.[round.key] || [];
-        const actualValues = knockoutResults[round.key] || [];
+        const actualValues =
+          round.key === "secondRound"
+            ? uniqueNormalized([...(knockoutResults[round.key] || []), ...(effectiveRules.qualifiedSecondRoundTeams || [])])
+            : knockoutResults[round.key] || [];
         const homePrediction = values[matchIndex * 2] || "";
         const awayPrediction = values[matchIndex * 2 + 1] || "";
         return {
@@ -1679,11 +1709,13 @@ async function handleStandings(req, res, pool) {
         },
         totalGoals: {
           value: bonusPredictions.totalGoals ?? "",
-          points: computeTotalGoalsPoints(
-            bonusPredictions.totalGoals,
-            effectiveRules.bonusResults?.totalGoals,
-            effectiveRules.totalGoalsExactPoints,
-          ),
+          points: effectiveRules.bonusResults?.championTeam
+            ? computeTotalGoalsPoints(
+                bonusPredictions.totalGoals,
+                effectiveRules.bonusResults?.totalGoals,
+                effectiveRules.totalGoalsExactPoints,
+              )
+            : 0,
           status: getBonusAnswerStatus(
             "totalGoals",
             bonusPredictions.totalGoals,
@@ -1944,6 +1976,7 @@ async function handleAdminMatches(req, res) {
       matches,
       knockoutResults: sanitizeKnockoutResults(previousRules?.knockoutResults),
       eliminatedTeams: sanitizeTeamList(previousRules?.eliminatedTeams ?? []),
+      qualifiedSecondRoundTeams: sanitizeQualifiedSecondRoundTeams(previousRules?.qualifiedSecondRoundTeams ?? []),
     });
     return;
   }
@@ -1961,6 +1994,8 @@ async function handleAdminMatches(req, res) {
     const homeScore = normalizeScore(update.homeScore);
     const awayScore = normalizeScore(update.awayScore);
     const explicitStatus = String(update.status || "").trim();
+    const isKnockoutMatch = knockoutRoundDefinitions.some((round) => round.label === match.stage);
+    const penaltyWinnerTeam = String(update.penaltyWinnerTeam || "").trim();
     const hasAnyScore = homeScore !== null || awayScore !== null;
     const isComplete = homeScore !== null && awayScore !== null;
 
@@ -1977,6 +2012,13 @@ async function handleAdminMatches(req, res) {
       });
       return;
     }
+
+    if (isKnockoutMatch && explicitStatus === "finished" && isComplete && homeScore === awayScore && !penaltyWinnerTeam) {
+      sendJson(res, 400, {
+        error: `Kies bij ${match.homeTeam} - ${match.awayTeam} welk land na strafschoppen wint.`,
+      });
+      return;
+    }
   }
 
   const nextMatches = matches.map((match) => {
@@ -1990,6 +2032,8 @@ async function handleAdminMatches(req, res) {
     const rawAwayScore = normalizeScore(update.awayScore);
     const isComplete = rawHomeScore !== null && rawAwayScore !== null;
     const finished = explicitStatus === "finished" && isComplete;
+    const isKnockoutMatch = knockoutRoundDefinitions.some((round) => round.label === match.stage);
+    const penaltyWinnerTeam = String(update.penaltyWinnerTeam || "").trim();
     const homeScore = finished ? rawHomeScore : null;
     const awayScore = finished ? rawAwayScore : null;
 
@@ -2000,6 +2044,11 @@ async function handleAdminMatches(req, res) {
       homeScore,
       awayScore,
       status: finished ? "finished" : "scheduled",
+      afterExtraTime: isKnockoutMatch && finished ? Boolean(update.afterExtraTime) : false,
+      penaltyWinnerTeam:
+        isKnockoutMatch && finished && homeScore === awayScore
+          ? penaltyWinnerTeam
+          : "",
     };
 
     const changed =
@@ -2007,7 +2056,9 @@ async function handleAdminMatches(req, res) {
       nextMatch.awayTeam !== match.awayTeam ||
       nextMatch.homeScore !== match.homeScore ||
       nextMatch.awayScore !== match.awayScore ||
-      nextMatch.status !== match.status;
+      nextMatch.status !== match.status ||
+      nextMatch.afterExtraTime !== Boolean(match.afterExtraTime) ||
+      nextMatch.penaltyWinnerTeam !== String(match.penaltyWinnerTeam || "");
 
     return {
       ...nextMatch,
@@ -2020,12 +2071,16 @@ async function handleAdminMatches(req, res) {
     ...(previousRules || {}),
     knockoutResults: sanitizeKnockoutResults(body.knockoutResults, previousRules?.knockoutResults),
     eliminatedTeams: sanitizeTeamList(body.eliminatedTeams ?? previousRules?.eliminatedTeams ?? []),
+    qualifiedSecondRoundTeams: sanitizeQualifiedSecondRoundTeams(
+      body.qualifiedSecondRoundTeams ?? previousRules?.qualifiedSecondRoundTeams ?? [],
+    ),
   };
   await writeJson("rules.json", nextRules);
   sendJson(res, 200, {
     matches: nextMatches,
     knockoutResults: nextRules.knockoutResults,
     eliminatedTeams: nextRules.eliminatedTeams,
+    qualifiedSecondRoundTeams: nextRules.qualifiedSecondRoundTeams,
   });
 }
 
