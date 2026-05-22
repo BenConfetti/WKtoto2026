@@ -568,7 +568,13 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
     bonusResults.topScorerAnswers?.length ? bonusResults.topScorerAnswers : bonusResults.topScorer,
   ).map(normalizeFreeText);
 
-  if (bonusPredictions.topScorer && acceptedTopScorers.includes(normalizeFreeText(bonusPredictions.topScorer))) {
+  const finalOpenQuestionsUnlocked = Boolean(bonusResults.championTeam);
+
+  if (
+    finalOpenQuestionsUnlocked &&
+    bonusPredictions.topScorer &&
+    acceptedTopScorers.includes(normalizeFreeText(bonusPredictions.topScorer))
+  ) {
     total += rules.topScorerPoints;
   }
 
@@ -578,17 +584,20 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
       : bonusResults.topScorerNetherlands,
   ).map(normalizeFreeText);
   if (
+    finalOpenQuestionsUnlocked &&
     bonusPredictions.topScorerNetherlands &&
     acceptedDutchTopScorers.includes(normalizeFreeText(bonusPredictions.topScorerNetherlands))
   ) {
     total += rules.topScorerNetherlandsPoints;
   }
 
-  total += computeTotalGoalsPoints(
-    bonusPredictions.totalGoals,
-    bonusResults.totalGoals,
-    rules.totalGoalsExactPoints,
-  );
+  if (finalOpenQuestionsUnlocked) {
+    total += computeTotalGoalsPoints(
+      bonusPredictions.totalGoals,
+      bonusResults.totalGoals,
+      rules.totalGoalsExactPoints,
+    );
+  }
 
   return total;
 }
@@ -894,6 +903,10 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "topScorer") {
+    if (!bonusResults.championTeam) {
+      return "pending";
+    }
+
     const accepted = sanitizeAnswerList(
       bonusResults.topScorerAnswers?.length ? bonusResults.topScorerAnswers : bonusResults.topScorer,
     ).map(normalizeFreeText);
@@ -904,6 +917,10 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "topScorerNetherlands") {
+    if (!bonusResults.championTeam) {
+      return "pending";
+    }
+
     const accepted = sanitizeAnswerList(
       bonusResults.topScorerNetherlandsAnswers?.length
         ? bonusResults.topScorerNetherlandsAnswers
@@ -916,6 +933,10 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "totalGoals") {
+    if (!bonusResults.championTeam) {
+      return "pending";
+    }
+
     if (bonusResults.totalGoals === null || bonusResults.totalGoals === undefined) {
       return "pending";
     }
