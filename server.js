@@ -1199,6 +1199,9 @@ async function handleAdminCopyParticipants(req, res, sourcePoolId) {
 
   const body = await readBody(req);
   const targetPoolId = String(body.targetPoolId || "").trim();
+  const selectedParticipantIds = Array.isArray(body.participantIds)
+    ? new Set(body.participantIds.map((id) => String(id || "").trim()).filter(Boolean))
+    : new Set();
   const skipExisting = body.skipExisting !== false;
   const { participants, pools } = await getState();
   const sourcePool = findPoolById(pools, sourcePoolId);
@@ -1214,7 +1217,14 @@ async function handleAdminCopyParticipants(req, res, sourcePoolId) {
     return;
   }
 
-  const sourceParticipants = participants.filter((participant) => participant.poolId === sourcePool.id);
+  if (!selectedParticipantIds.size) {
+    sendJson(res, 400, { error: "Selecteer eerst een of meer deelnemers om te kopieren." });
+    return;
+  }
+
+  const sourceParticipants = participants.filter(
+    (participant) => participant.poolId === sourcePool.id && selectedParticipantIds.has(participant.id),
+  );
   const usedTargetNames = new Set(
     participants
       .filter((participant) => participant.poolId === targetPool.id)

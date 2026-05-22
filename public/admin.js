@@ -68,6 +68,7 @@ const participantsCount = document.querySelector("#participants-count");
 const participantsList = document.querySelector("#admin-participants");
 const copyTargetPoolSelect = document.querySelector("#copy-target-pool");
 const copySkipExistingInput = document.querySelector("#copy-skip-existing");
+const copySelectAllInput = document.querySelector("#copy-select-all");
 const copyParticipantsButton = document.querySelector("#copy-participants-button");
 const copyParticipantsStatus = document.querySelector("#copy-participants-status");
 const resultsStatusBanner = document.querySelector("#results-status-banner");
@@ -864,7 +865,10 @@ function renderParticipants(participants) {
     .map((participant) => `
       <details class="admin-participant-card">
         <summary>
-          <span>${participant.name}</span>
+          <span class="admin-participant-summary-main">
+            <input type="checkbox" class="admin-copy-select" data-participant-id="${participant.id}" aria-label="Selecteer deelnemer om te kopieren">
+            <span>${participant.name}</span>
+          </span>
           <span class="notice">${calculateParticipantCompletion(participant)}% ingevuld - ${formatDateTime(participant.updatedAt)}</span>
         </summary>
         <div class="admin-participant-body">
@@ -921,6 +925,38 @@ function renderParticipants(participants) {
       </details>
     `)
     .join("");
+  if (copySelectAllInput) {
+    copySelectAllInput.checked = false;
+    copySelectAllInput.indeterminate = false;
+  }
+  updateCopySelectionStatus();
+}
+
+function getSelectedParticipantIds() {
+  return [...participantsList.querySelectorAll(".admin-copy-select:checked")]
+    .map((input) => input.dataset.participantId)
+    .filter(Boolean);
+}
+
+function updateCopySelectionStatus() {
+  const total = participantsList.querySelectorAll(".admin-copy-select").length;
+  const selected = getSelectedParticipantIds().length;
+
+  if (copySelectAllInput) {
+    copySelectAllInput.checked = total > 0 && selected === total;
+    copySelectAllInput.indeterminate = selected > 0 && selected < total;
+  }
+
+  if (!copyParticipantsStatus) {
+    return;
+  }
+
+  if (!selected) {
+    copyParticipantsStatus.textContent = "Selecteer deelnemers en kies een doelpool om formulieren te kopieren.";
+    return;
+  }
+
+  copyParticipantsStatus.textContent = `${selected} deelnemer(s) geselecteerd om te kopieren.`;
 }
 
 async function loadParticipants() {
@@ -952,15 +988,21 @@ async function deleteParticipant(participantId) {
 
 async function copyParticipantsToPool() {
   const targetPoolId = copyTargetPoolSelect.value;
+  const participantIds = getSelectedParticipantIds();
   if (!selectedPoolId || !targetPoolId) {
     copyParticipantsStatus.textContent = "Kies eerst een bronpool en een andere doelpool.";
+    return;
+  }
+
+  if (!participantIds.length) {
+    copyParticipantsStatus.textContent = "Selecteer eerst een of meer deelnemers om te kopieren.";
     return;
   }
 
   const sourcePool = getSelectedPool();
   const targetPool = adminPools.find((pool) => pool.id === targetPoolId);
   const confirmed = window.confirm(
-    `Weet je zeker dat je alle formulieren van ${sourcePool?.name || "deze pool"} wilt dupliceren naar ${targetPool?.name || "de doelpool"}?`,
+    `Weet je zeker dat je ${participantIds.length} geselecteerde formulier(en) van ${sourcePool?.name || "deze pool"} wilt dupliceren naar ${targetPool?.name || "de doelpool"}?`,
   );
   if (!confirmed) {
     return;
@@ -977,6 +1019,7 @@ async function copyParticipantsToPool() {
       },
       body: JSON.stringify({
         targetPoolId,
+        participantIds,
         skipExisting: copySkipExistingInput.checked,
       }),
     });
@@ -985,7 +1028,7 @@ async function copyParticipantsToPool() {
       throw new Error(data.error || "Dupliceren mislukt");
     }
 
-    copyParticipantsStatus.textContent = `${data.copied} formulier(en) gekopieerd naar ${data.targetPool?.name || "de doelpool"}. ${data.skippedExisting} bestaande naam/namen overgeslagen.`;
+    copyParticipantsStatus.textContent = `${data.copied} geselecteerde formulier(en) gekopieerd naar ${data.targetPool?.name || "de doelpool"}. ${data.skippedExisting} bestaande naam/namen overgeslagen.`;
   } finally {
     copyParticipantsButton.disabled = false;
   }
@@ -1060,7 +1103,19 @@ copyParticipantsButton.addEventListener("click", () => {
   });
 });
 
+copySelectAllInput.addEventListener("change", () => {
+  participantsList.querySelectorAll(".admin-copy-select").forEach((input) => {
+    input.checked = copySelectAllInput.checked;
+  });
+  updateCopySelectionStatus();
+});
+
 participantsList.addEventListener("click", (event) => {
+  if (event.target.closest(".admin-copy-select")) {
+    event.stopPropagation();
+    return;
+  }
+
   const copyButton = event.target.closest(".admin-copy-link");
   if (copyButton) {
     navigator.clipboard.writeText(copyButton.dataset.editLink || "").then(() => {
@@ -1090,6 +1145,14 @@ participantsList.addEventListener("click", (event) => {
   }).catch((error) => {
     resultsStatus.textContent = error.message || "Verwijderen mislukt";
   });
+});
+
+participantsList.addEventListener("change", (event) => {
+  if (!event.target.closest(".admin-copy-select")) {
+    return;
+  }
+
+  updateCopySelectionStatus();
 });
 
 poolList.addEventListener("click", (event) => {

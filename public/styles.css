@@ -1347,8 +1347,19 @@ th {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  align-items: center;
   cursor: pointer;
   font-weight: 700;
+}
+
+.admin-participant-summary-main {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-copy-select {
+  width: auto;
 }
 
 .admin-participant-body {
