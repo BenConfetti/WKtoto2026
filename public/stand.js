@@ -11,6 +11,14 @@ function poolApiPath(path) {
   return `/api/pools/${getPoolSlug()}${path}`;
 }
 
+function renderTeamWithFlag(team, label = team) {
+  return window.teamFlags?.team(team, label) || label;
+}
+
+function renderTeamList(teams) {
+  return teams.map((team) => renderTeamWithFlag(team)).join(", ");
+}
+
 function formatDateTime(value) {
   return new Intl.DateTimeFormat("nl-NL", {
     dateStyle: "medium",
@@ -42,7 +50,7 @@ function renderLastUpdated(match) {
     return;
   }
 
-  target.textContent = `${match.homeTeam} - ${match.awayTeam} (${match.homeScore} - ${match.awayScore}) op ${formatDateTime(match.updatedAt || match.kickoffAt)}.`;
+  target.innerHTML = `${renderTeamWithFlag(match.homeTeam)} <span class="team-separator">-</span> ${renderTeamWithFlag(match.awayTeam)} (${match.homeScore} - ${match.awayScore}) op ${formatDateTime(match.updatedAt || match.kickoffAt)}.`;
 }
 
 function participantLink(entry, unlocked) {
@@ -150,6 +158,8 @@ function renderStandingsLocked(message) {
   document.querySelector("#live-tournament-stats").innerHTML = `<p class="notice">${message}</p>`;
   document.querySelector("#recent-matches").innerHTML = `<p class="notice">${message}</p>`;
   document.querySelector("#upcoming-matches").innerHTML = `<p class="notice">${message}</p>`;
+  document.querySelector("#actual-group-standings").innerHTML = `<p class="notice">${message}</p>`;
+  document.querySelector("#actual-third-ranking").innerHTML = `<p class="notice">${message}</p>`;
   document.querySelector("#knockout-overview").innerHTML = `<p class="notice">${message}</p>`;
   document.querySelector("#bonus-overview").innerHTML = `<p class="notice">${message}</p>`;
 }
@@ -193,11 +203,11 @@ function renderLiveTournamentStats(stats) {
     </div>
     <div class="status-summary-card">
       <strong>Meest scorende land(en)</strong>
-      <p>${stats.mostScoredTeams.length ? `${stats.mostScoredTeams.join(", ")} (${stats.mostScoredGoals})` : "Nog niet beschikbaar"}</p>
+      <p>${stats.mostScoredTeams.length ? `${renderTeamList(stats.mostScoredTeams)} (${stats.mostScoredGoals})` : "Nog niet beschikbaar"}</p>
     </div>
     <div class="status-summary-card">
       <strong>Meeste tegendoelpunten</strong>
-      <p>${stats.mostConcededTeams.length ? `${stats.mostConcededTeams.join(", ")} (${stats.mostConcededGoals})` : "Nog niet beschikbaar"}</p>
+      <p>${stats.mostConcededTeams.length ? `${renderTeamList(stats.mostConcededTeams)} (${stats.mostConcededGoals})` : "Nog niet beschikbaar"}</p>
     </div>
     <div class="status-summary-card">
       <strong>Huidige topscorer</strong>
@@ -219,9 +229,11 @@ function renderPredictionMatrix(matchesWithEntries, standings, unlocked, mode) {
 
   const headerCells = matchesWithEntries
     .map(({ match }) => {
+      const homeTeam = shortenTeamName(match.homeTeam);
+      const awayTeam = shortenTeamName(match.awayTeam);
       const title = isRecent
-        ? `${match.homeTeam} - ${match.awayTeam} ${match.homeScore}-${match.awayScore}`
-        : `${match.homeTeam} - ${match.awayTeam}`;
+        ? `${homeTeam} - ${awayTeam} ${match.homeScore}-${match.awayScore}`
+        : `${homeTeam} - ${awayTeam}`;
 
       return `
         <th class="matrix-match-col">
@@ -301,6 +313,121 @@ function renderUpcomingMatches(upcomingMatchPredictions, standings, unlocked) {
     entries: sortEntriesByStand(block.entries, standings),
   }));
   container.innerHTML = renderPredictionMatrix(sorted, standings, unlocked, "upcoming");
+}
+
+function renderActualGroupTable(group) {
+  return `
+    <div class="ranking-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Land</th>
+            <th>Gs</th>
+            <th>W</th>
+            <th>Gl</th>
+            <th>V</th>
+            <th>Pt</th>
+            <th>Dv</th>
+            <th>Dt</th>
+            <th>DS</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${group.table
+            .map(
+              (entry) => `
+                <tr class="${entry.rank <= 2 ? "qualified-row" : entry.rank === 3 ? "playoff-row" : ""}">
+                  <td>${entry.rank}</td>
+                  <td>${renderTeamWithFlag(entry.team)}</td>
+                  <td>${entry.played}</td>
+                  <td>${entry.wins}</td>
+                  <td>${entry.draws}</td>
+                  <td>${entry.losses}</td>
+                  <td class="points-cell">${entry.points}</td>
+                  <td>${entry.goalsFor}</td>
+                  <td>${entry.goalsAgainst}</td>
+                  <td>${entry.goalDifference}</td>
+                </tr>
+              `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderActualGroupStandings(snapshot) {
+  const groupsContainer = document.querySelector("#actual-group-standings");
+  const thirdRankingContainer = document.querySelector("#actual-third-ranking");
+  const progress = document.querySelector("#actual-group-progress");
+  const completed = snapshot?.totalCompletedMatches || 0;
+  const groups = snapshot?.groups || [];
+  const thirdPlaceRanking = snapshot?.thirdPlaceRanking || [];
+
+  progress.textContent = `${completed} wedstrijd${completed === 1 ? "" : "en"} verwerkt`;
+  progress.className = `pill ${completed > 0 ? "success" : "muted"}`.trim();
+
+  groupsContainer.innerHTML = groups
+    .map(
+      (group) => `
+        <section class="group-card">
+          <div class="section-head">
+            <h3>Poule ${group.key}</h3>
+            <span class="pill ${group.completedMatches ? "success" : "muted"}">${group.completedMatches}/${group.totalMatches} wedstrijden</span>
+          </div>
+          ${renderActualGroupTable(group)}
+        </section>
+      `,
+    )
+    .join("");
+
+  thirdRankingContainer.innerHTML = `
+    <div class="section-head">
+      <h3>Ranglijst beste nummers drie</h3>
+      <span class="pill muted">Beste 8 gaan door</span>
+    </div>
+    <div class="ranking-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Land</th>
+            <th>Gs</th>
+            <th>W</th>
+            <th>Gl</th>
+            <th>V</th>
+            <th>Pt</th>
+            <th>Dv</th>
+            <th>Dt</th>
+            <th>DS</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${thirdPlaceRanking
+            .map(
+              (entry, index) => `
+                <tr class="${index < 8 ? "qualified-row" : ""}">
+                  <td>${index + 1}</td>
+                  <td>${renderTeamWithFlag(entry.team)}</td>
+                  <td>${entry.played}</td>
+                  <td>${entry.wins}</td>
+                  <td>${entry.draws}</td>
+                  <td>${entry.losses}</td>
+                  <td class="points-cell">${entry.points}</td>
+                  <td>${entry.goalsFor}</td>
+                  <td>${entry.goalsAgainst}</td>
+                  <td>${entry.goalDifference}</td>
+                </tr>
+              `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+    <p class="notice">Fair play en loting zitten nog niet in deze automatische tussenstand.</p>
+  `;
 }
 
 function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
@@ -512,24 +639,25 @@ function renderBonusOverview(bonusOverview, standings, unlocked) {
         ${sorted
           .map((entry) => {
             const answers = entry.answers || {};
-            const renderAnswer = (item) => {
+            const renderAnswer = (item, isTeam = false) => {
               const value = item?.value === "" || item?.value === null || item?.value === undefined ? "-" : item.value;
               const statusClass = item?.status ? ` status-${item.status}` : "";
               const pointsLabel =
                 item?.points && item.points > 0 ? ` <span class="bonus-answer-points">(${item.points} pnt)</span>` : "";
-              return `<span class="bonus-answer${statusClass}">${value}${pointsLabel}</span>`;
+              const displayValue = isTeam && value !== "-" ? renderTeamWithFlag(value) : value;
+              return `<span class="bonus-answer${statusClass}">${displayValue}${pointsLabel}</span>`;
             };
 
             return `
               <tr>
                 <td class="bonus-name-cell">${participantNameCell({ id: entry.participantId, name: entry.participantName }, unlocked)}</td>
-                <td>${renderAnswer(answers.championTeam)}</td>
-                <td>${renderAnswer(answers.mostGoalsTeam)}</td>
-                <td>${renderAnswer(answers.mostConcededTeam)}</td>
-                <td>${renderAnswer(answers.bestAfricanTeam)}</td>
-                <td>${renderAnswer(answers.bestAsianTeam)}</td>
-                <td>${renderAnswer(answers.bestCentralAmericanTeam)}</td>
-                <td>${renderAnswer(answers.bestHostTeam)}</td>
+                <td>${renderAnswer(answers.championTeam, true)}</td>
+                <td>${renderAnswer(answers.mostGoalsTeam, true)}</td>
+                <td>${renderAnswer(answers.mostConcededTeam, true)}</td>
+                <td>${renderAnswer(answers.bestAfricanTeam, true)}</td>
+                <td>${renderAnswer(answers.bestAsianTeam, true)}</td>
+                <td>${renderAnswer(answers.bestCentralAmericanTeam, true)}</td>
+                <td>${renderAnswer(answers.bestHostTeam, true)}</td>
                 <td>${renderAnswer(answers.topScorer)}</td>
                 <td>${renderAnswer(answers.topScorerNetherlands)}</td>
                 <td>${renderAnswer(answers.totalGoals)}</td>
@@ -578,6 +706,7 @@ async function loadStandings() {
   renderLiveTournamentStats(data.liveTournamentStats);
   renderRecentMatches(data.recentMatchPredictions, data.standings, data.predictionsUnlocked);
   renderUpcomingMatches(data.upcomingMatchPredictions, data.standings, data.predictionsUnlocked);
+  renderActualGroupStandings(data.groupStageStandings);
   renderKnockoutOverview(data.knockoutOverview || [], data.standings, data.predictionsUnlocked);
   renderBonusOverview(data.bonusOverview || [], data.standings, data.predictionsUnlocked);
 }

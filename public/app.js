@@ -5083,6 +5083,10 @@ function getPoolSlug() {
   return parts[0] === "pool" && parts[1] ? parts[1] : "";
 }
 
+function renderTeamWithFlag(team, label = team) {
+  return window.teamFlags?.team(team, label) || label;
+}
+
 function poolBasePath() {
   return `/pool/${getPoolSlug()}`;
 }
@@ -5310,7 +5314,7 @@ function renderMatches(matches, predictions = []) {
         article.innerHTML = `
           <div class="match-time">${formatTime(match.kickoffAt)}</div>
           <div class="match-main">
-            <p class="match-title">${match.homeTeam} - ${match.awayTeam}</p>
+            <p class="match-title">${renderTeamWithFlag(match.homeTeam)} <span class="team-separator">-</span> ${renderTeamWithFlag(match.awayTeam)}</p>
             <p class="match-meta">Poule ${group.key} - ${match.city}</p>
           </div>
           <div class="score-inputs">
@@ -5358,6 +5362,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
         <option value="">Kies een land</option>
         ${renderCountryOptions(countryOptions, bonusPredictions.championTeam)}
       </select>
+      <span class="selected-team-preview" data-bonus-team-preview="championTeam"></span>
     </label>
     <label>
       Welk land scoort de meeste doelpunten?
@@ -5365,6 +5370,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
         <option value="">Kies een land</option>
         ${renderCountryOptions(countryOptions, bonusPredictions.mostGoalsTeam)}
       </select>
+      <span class="selected-team-preview" data-bonus-team-preview="mostGoalsTeam"></span>
     </label>
     <label>
       Welk land krijgt de meeste doelpunten tegen?
@@ -5372,6 +5378,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
         <option value="">Kies een land</option>
         ${renderCountryOptions(countryOptions, bonusPredictions.mostConcededTeam)}
       </select>
+      <span class="selected-team-preview" data-bonus-team-preview="mostConcededTeam"></span>
     </label>
     <label>
       Welk Afrikaans land komt het verst?
@@ -5379,6 +5386,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
         <option value="">Kies een land</option>
         ${renderCountryOptions(africanOptions, bonusPredictions.bestAfricanTeam)}
       </select>
+      <span class="selected-team-preview" data-bonus-team-preview="bestAfricanTeam"></span>
     </label>
     <label>
       Welk Aziatisch land komt het verst?
@@ -5386,6 +5394,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
         <option value="">Kies een land</option>
         ${renderCountryOptions(asianOptions, bonusPredictions.bestAsianTeam)}
       </select>
+      <span class="selected-team-preview" data-bonus-team-preview="bestAsianTeam"></span>
     </label>
     <label>
       Welk Midden-Amerikaans land komt het verst?
@@ -5393,6 +5402,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
         <option value="">Kies een land</option>
         ${renderCountryOptions(centralAmericanOptions, bonusPredictions.bestCentralAmericanTeam)}
       </select>
+      <span class="selected-team-preview" data-bonus-team-preview="bestCentralAmericanTeam"></span>
     </label>
     <label>
       Welk gastland komt het verst?
@@ -5400,6 +5410,7 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
         <option value="">Kies een land</option>
         ${renderCountryOptions(hostOptions, bonusPredictions.bestHostTeam)}
       </select>
+      <span class="selected-team-preview" data-bonus-team-preview="bestHostTeam"></span>
     </label>
     <label>
       Wie wordt topscorer?
@@ -5415,6 +5426,26 @@ function renderBonusQuestions(matches, bonusPredictions = {}) {
       <span class="field-hint" id="bonus-totalGoals-hint">Nog geen suggestie beschikbaar.</span>
     </label>
   `;
+  refreshBonusFlagPreviews();
+}
+
+function refreshBonusFlagPreviews() {
+  for (const key of [
+    "championTeam",
+    "mostGoalsTeam",
+    "mostConcededTeam",
+    "bestAfricanTeam",
+    "bestAsianTeam",
+    "bestCentralAmericanTeam",
+    "bestHostTeam",
+  ]) {
+    const value = document.querySelector(`#bonus-${key}`)?.value || "";
+    const preview = document.querySelector(`[data-bonus-team-preview="${key}"]`);
+    if (preview) {
+      preview.innerHTML = value ? renderTeamWithFlag(value) : "";
+      preview.classList.toggle("hidden", !value);
+    }
+  }
 }
 
 function collectPredictions() {
@@ -5851,7 +5882,7 @@ function renderGroupStandings(snapshot) {
                     (entry, index) => `
                       <tr class="${index < 8 ? "qualified-row" : ""}">
                         <td>${index + 1}</td>
-                        <td>${entry.team}</td>
+                        <td>${renderTeamWithFlag(entry.team)}</td>
                         <td>${entry.played}</td>
                         <td>${entry.wins}</td>
                         <td>${entry.draws}</td>
@@ -5927,7 +5958,7 @@ function renderSecondRoundSuggestion(suggestedTeams) {
     <div class="chip-list">
       ${
         hasSuggestion
-          ? suggestedTeams.map((team) => `<span class="team-chip">${team}</span>`).join("")
+          ? suggestedTeams.map((team) => `<span class="team-chip">${renderTeamWithFlag(team)}</span>`).join("")
           : '<span class="notice">Vul eerst een paar groepswedstrijden volledig in.</span>'
       }
     </div>
@@ -5958,7 +5989,7 @@ function renderGroupTable(group) {
               (entry) => `
                 <tr class="${entry.rank <= 2 ? "qualified-row" : entry.rank === 3 ? "playoff-row" : ""}">
                   <td>${entry.rank}</td>
-                  <td>${entry.team}</td>
+                  <td>${renderTeamWithFlag(entry.team)}</td>
                   <td>${entry.played}</td>
                   <td>${entry.wins}</td>
                   <td>${entry.draws}</td>
@@ -6072,6 +6103,12 @@ function renderRounds(rules, knockoutPredictions = {}, suggestions = {}, snapsho
         }
 
         field.appendChild(select);
+        if (slot.value) {
+          const selectedTeam = document.createElement("span");
+          selectedTeam.className = "selected-team-preview";
+          selectedTeam.innerHTML = renderTeamWithFlag(slot.value);
+          field.appendChild(selectedTeam);
+        }
         selectsContainer.appendChild(field);
       }
 
@@ -6278,6 +6315,7 @@ async function init() {
     }
 
     if (event.target instanceof HTMLSelectElement) {
+      refreshBonusFlagPreviews();
       refreshDerivedViews();
       queueAutosave();
     }

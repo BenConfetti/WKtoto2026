@@ -13,6 +13,10 @@ function poolApiPath(path) {
 
 const chartColors = ["#16b6ff", "#ff4d2d", "#bbff14", "#7a30ff", "#5df1d2", "#ff8a3d", "#2731b6", "#00a86b"];
 
+function renderTeamWithFlag(team, label = team) {
+  return window.teamFlags?.team(team, label) || label;
+}
+
 function updateNavigation() {
   document.querySelectorAll(".nav a").forEach((link) => {
     const href = link.getAttribute("href");
@@ -71,7 +75,7 @@ function renderPieChart(container, title, values) {
       (entry, index) => `
         <div class="stats-legend-row">
           <span class="stats-swatch" style="background:${chartColors[index % chartColors.length]}"></span>
-          <span>${entry.value}</span>
+          <span>${renderTeamWithFlag(entry.value)}</span>
           <strong>${entry.count}</strong>
         </div>
       `,
@@ -93,7 +97,7 @@ function formatMatch(match) {
     return "Nog niet beschikbaar";
   }
 
-  return `${match.homeTeam} - ${match.awayTeam}`;
+  return `${renderTeamWithFlag(match.homeTeam)} <span class="team-separator">-</span> ${renderTeamWithFlag(match.awayTeam)}`;
 }
 
 function renderWillemBindels(scores) {

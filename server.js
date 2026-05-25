@@ -335,6 +335,225 @@ function getGroupStageMatches(matches) {
   return matches.filter((match) => match.stage === "Groepsfase");
 }
 
+function getGroupKey(match) {
+  const code = String(match.homeSlotCode || match.awaySlotCode || "").trim();
+  const result = /^([A-Z])/.exec(code);
+  return result ? result[1] : null;
+}
+
+function createGroupTeamStats(team, groupKey) {
+  return {
+    team,
+    groupKey,
+    played: 0,
+    points: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+    goalDifference: 0,
+  };
+}
+
+function applyGroupMatchResult(homeStats, awayStats, homeScore, awayScore) {
+  homeStats.played += 1;
+  awayStats.played += 1;
+  homeStats.goalsFor += homeScore;
+  homeStats.goalsAgainst += awayScore;
+  awayStats.goalsFor += awayScore;
+  awayStats.goalsAgainst += homeScore;
+  homeStats.goalDifference = homeStats.goalsFor - homeStats.goalsAgainst;
+  awayStats.goalDifference = awayStats.goalsFor - awayStats.goalsAgainst;
+
+  if (homeScore > awayScore) {
+    homeStats.wins += 1;
+    awayStats.losses += 1;
+    homeStats.points += 3;
+    return;
+  }
+
+  if (homeScore < awayScore) {
+    awayStats.wins += 1;
+    homeStats.losses += 1;
+    awayStats.points += 3;
+    return;
+  }
+
+  homeStats.draws += 1;
+  awayStats.draws += 1;
+  homeStats.points += 1;
+  awayStats.points += 1;
+}
+
+function compareGroupTeamStats(left, right) {
+  return (
+    right.points - left.points ||
+    right.goalDifference - left.goalDifference ||
+    right.goalsFor - left.goalsFor ||
+    left.team.localeCompare(right.team, "nl")
+  );
+}
+
+function compareThirdPlaceStats(left, right) {
+  return (
+    right.points - left.points ||
+    right.goalDifference - left.goalDifference ||
+    right.goalsFor - left.goalsFor ||
+    left.groupKey.localeCompare(right.groupKey, "nl")
+  );
+}
+
+function createGroupMiniTable(teams, matches) {
+  const teamSet = new Set(teams);
+  const statsMap = new Map(teams.map((team) => [team, createGroupTeamStats(team, "")]));
+
+  for (const match of matches) {
+    if (
+      match.status !== "finished" ||
+      !hasCompleteScore(match) ||
+      !teamSet.has(match.homeTeam) ||
+      !teamSet.has(match.awayTeam)
+    ) {
+      continue;
+    }
+
+    applyGroupMatchResult(statsMap.get(match.homeTeam), statsMap.get(match.awayTeam), match.homeScore, match.awayScore);
+  }
+
+  return statsMap;
+}
+
+function resolveGroupTie(teams, matches) {
+  if (teams.length <= 1) {
+    return teams;
+  }
+
+  const miniStatsMap = createGroupMiniTable(teams, matches);
+  const sorted = [...teams].sort((left, right) => compareGroupTeamStats(miniStatsMap.get(left), miniStatsMap.get(right)));
+  const result = [];
+
+  for (let index = 0; index < sorted.length; ) {
+    const current = miniStatsMap.get(sorted[index]);
+    const tiedGroup = [sorted[index]];
+    index += 1;
+
+    while (index < sorted.length) {
+      const candidate = miniStatsMap.get(sorted[index]);
+      if (
+        candidate.points === current.points &&
+        candidate.goalDifference === current.goalDifference &&
+        candidate.goalsFor === current.goalsFor
+      ) {
+        tiedGroup.push(sorted[index]);
+        index += 1;
+      } else {
+        break;
+      }
+    }
+
+    if (tiedGroup.length === teams.length) {
+      result.push(...tiedGroup.sort((left, right) => left.localeCompare(right, "nl")));
+      continue;
+    }
+
+    result.push(...resolveGroupTie(tiedGroup, matches));
+  }
+
+  return result;
+}
+
+function rankActualGroup(group) {
+  const statsMap = new Map(group.teams.map((team) => [team, createGroupTeamStats(team, group.key)]));
+  let completedMatches = 0;
+
+  for (const match of group.matches) {
+    if (match.status !== "finished" || !hasCompleteScore(match)) {
+      continue;
+    }
+
+    completedMatches += 1;
+    applyGroupMatchResult(statsMap.get(match.homeTeam), statsMap.get(match.awayTeam), match.homeScore, match.awayScore);
+  }
+
+  const preliminary = [...group.teams].sort((left, right) => compareGroupTeamStats(statsMap.get(left), statsMap.get(right)));
+  const rankedTeams = [];
+
+  for (let index = 0; index < preliminary.length; ) {
+    const current = statsMap.get(preliminary[index]);
+    const tied = [preliminary[index]];
+    index += 1;
+
+    while (index < preliminary.length) {
+      const candidate = statsMap.get(preliminary[index]);
+      if (
+        candidate.points === current.points &&
+        candidate.goalDifference === current.goalDifference &&
+        candidate.goalsFor === current.goalsFor
+      ) {
+        tied.push(preliminary[index]);
+        index += 1;
+      } else {
+        break;
+      }
+    }
+
+    rankedTeams.push(...resolveGroupTie(tied, group.matches));
+  }
+
+  return {
+    key: group.key,
+    completedMatches,
+    totalMatches: group.matches.length,
+    table: rankedTeams.map((team, index) => ({
+      ...statsMap.get(team),
+      rank: index + 1,
+    })),
+  };
+}
+
+function buildActualGroupStageStandings(groupStageMatches) {
+  const groupsMap = new Map();
+
+  for (const match of groupStageMatches) {
+    const groupKey = getGroupKey(match);
+    if (!groupKey) {
+      continue;
+    }
+
+    if (!groupsMap.has(groupKey)) {
+      groupsMap.set(groupKey, {
+        key: groupKey,
+        teams: new Set(),
+        matches: [],
+      });
+    }
+
+    const group = groupsMap.get(groupKey);
+    group.teams.add(match.homeTeam);
+    group.teams.add(match.awayTeam);
+    group.matches.push(match);
+  }
+
+  const groups = [...groupsMap.values()]
+    .sort((left, right) => left.key.localeCompare(right.key, "nl"))
+    .map((group) => rankActualGroup({
+      key: group.key,
+      teams: [...group.teams],
+      matches: group.matches,
+    }));
+  const thirdPlaceRanking = groups
+    .map((group) => group.table.find((entry) => entry.rank === 3))
+    .filter(Boolean)
+    .sort(compareThirdPlaceStats);
+
+  return {
+    groups,
+    thirdPlaceRanking,
+    totalCompletedMatches: groups.reduce((sum, group) => sum + group.completedMatches, 0),
+  };
+}
+
 const knockoutRoundDefinitions = [
   { key: "secondRound", label: "Tweede ronde", shortLabel: "2R", slots: 32 },
   { key: "thirdRound", label: "Derde ronde", shortLabel: "3R", slots: 16 },
@@ -1451,6 +1670,7 @@ async function handleStandings(req, res, pool) {
   const poolParticipants = participants.filter((participant) => participant.poolId === pool.id);
   const groupStageMatches = getGroupStageMatches(matches);
   const groupStageMatchById = new Map(groupStageMatches.map((match) => [match.id, match]));
+  const groupStageStandings = buildActualGroupStageStandings(groupStageMatches);
   const knockoutResults = sanitizeKnockoutResults(effectiveRules.knockoutResults);
   const eliminatedTeams = new Set(effectiveRules.eliminatedTeams || []);
   const finishedMatches = matches
@@ -1751,6 +1971,7 @@ async function handleStandings(req, res, pool) {
     },
     recentMatchPredictions,
     upcomingMatchPredictions,
+    groupStageStandings,
     knockoutOverview,
     bonusOverview,
     predictionsUnlocked,

@@ -11,6 +11,10 @@ function poolApiPath(path) {
   return `/api/pools/${getPoolSlug()}${path}`;
 }
 
+function renderTeamWithFlag(team, label = team) {
+  return window.teamFlags?.team(team, label) || label;
+}
+
 function getParticipantId() {
   const parts = window.location.pathname.split("/").filter(Boolean);
   return parts[3] || "";
@@ -30,7 +34,7 @@ function renderPredictions(predictions) {
     .map(({ match, predictedHomeScore, predictedAwayScore, points, outcome }) => `
       <article class="participant-row prediction-${outcome}">
         <div>
-          <p class="match-title">${match.homeTeam} - ${match.awayTeam}</p>
+          <p class="match-title">${renderTeamWithFlag(match.homeTeam)} <span class="team-separator">-</span> ${renderTeamWithFlag(match.awayTeam)}</p>
           <p class="match-meta">${match.stage} - ${match.city} - ${formatDateTime(match.kickoffAt)}</p>
         </div>
         <div class="participant-row-side">
@@ -45,13 +49,13 @@ function renderPredictions(predictions) {
 function renderBonus(bonusPredictions) {
   const container = document.querySelector("#participant-bonus");
   container.innerHTML = `
-    <div class="admin-knockout-card"><strong>Wereldkampioen</strong><p>${bonusPredictions?.championTeam || "Niet ingevuld"}</p></div>
-    <div class="admin-knockout-card"><strong>Meeste doelpunten</strong><p>${bonusPredictions?.mostGoalsTeam || "Niet ingevuld"}</p></div>
-    <div class="admin-knockout-card"><strong>Meeste tegendoelpunten</strong><p>${bonusPredictions?.mostConcededTeam || "Niet ingevuld"}</p></div>
-    <div class="admin-knockout-card"><strong>Afrikaans land komt het verst</strong><p>${bonusPredictions?.bestAfricanTeam || "Niet ingevuld"}</p></div>
-    <div class="admin-knockout-card"><strong>Aziatisch land komt het verst</strong><p>${bonusPredictions?.bestAsianTeam || "Niet ingevuld"}</p></div>
-    <div class="admin-knockout-card"><strong>Midden-Amerikaans land komt het verst</strong><p>${bonusPredictions?.bestCentralAmericanTeam || "Niet ingevuld"}</p></div>
-    <div class="admin-knockout-card"><strong>Gastland komt het verst</strong><p>${bonusPredictions?.bestHostTeam || "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Wereldkampioen</strong><p>${bonusPredictions?.championTeam ? renderTeamWithFlag(bonusPredictions.championTeam) : "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Meeste doelpunten</strong><p>${bonusPredictions?.mostGoalsTeam ? renderTeamWithFlag(bonusPredictions.mostGoalsTeam) : "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Meeste tegendoelpunten</strong><p>${bonusPredictions?.mostConcededTeam ? renderTeamWithFlag(bonusPredictions.mostConcededTeam) : "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Afrikaans land komt het verst</strong><p>${bonusPredictions?.bestAfricanTeam ? renderTeamWithFlag(bonusPredictions.bestAfricanTeam) : "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Aziatisch land komt het verst</strong><p>${bonusPredictions?.bestAsianTeam ? renderTeamWithFlag(bonusPredictions.bestAsianTeam) : "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Midden-Amerikaans land komt het verst</strong><p>${bonusPredictions?.bestCentralAmericanTeam ? renderTeamWithFlag(bonusPredictions.bestCentralAmericanTeam) : "Niet ingevuld"}</p></div>
+    <div class="admin-knockout-card"><strong>Gastland komt het verst</strong><p>${bonusPredictions?.bestHostTeam ? renderTeamWithFlag(bonusPredictions.bestHostTeam) : "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Topscorer</strong><p>${bonusPredictions?.topScorer || "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Topscorer voor Nederland</strong><p>${bonusPredictions?.topScorerNetherlands || "Niet ingevuld"}</p></div>
     <div class="admin-knockout-card"><strong>Totaal doelpunten</strong><p>${bonusPredictions?.totalGoals ?? "Niet ingevuld"}</p></div>

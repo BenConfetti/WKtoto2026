@@ -75,6 +75,20 @@
       </section>
 
       <section class="card">
+        <div class="section-head">
+          <h2>Werkelijke groepsstanden</h2>
+          <span class="pill muted" id="actual-group-progress">0 wedstrijden verwerkt</span>
+        </div>
+        <p class="notice">Op basis van afgeronde groepswedstrijden.</p>
+        <div class="group-standings-grid" id="actual-group-standings">
+          <p class="notice">Groepsstanden worden geladen...</p>
+        </div>
+        <div class="third-ranking-card actual-third-ranking" id="actual-third-ranking">
+          <p class="notice">Stand van nummers drie wordt geladen...</p>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Knock-outlanden</h2>
         <div class="prediction-matrix-wrap" id="knockout-overview">
           <p class="notice">Nog geen knock-outvoorspellingen.</p>
@@ -89,6 +103,7 @@
       </section>
     </main>
 
+    <script src="/flags.js" defer></script>
     <script src="/stand.js" defer></script>
   </body>
 </html>

@@ -540,6 +540,34 @@ h3 {
   color: var(--ink);
 }
 
+.team-with-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  white-space: nowrap;
+}
+
+.team-flag {
+  display: inline-block;
+  width: 1.25em;
+  height: 0.9em;
+  object-fit: cover;
+  border: 1px solid rgba(39, 49, 182, 0.14);
+  border-radius: 1px;
+  flex: 0 0 auto;
+}
+
+.team-separator {
+  margin: 0 0.15em;
+}
+
+.selected-team-preview {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
 .match-meta {
   color: var(--muted);
 }
@@ -683,6 +711,10 @@ h3 {
 
 .ranking-table-wrap {
   overflow-x: auto;
+}
+
+.actual-third-ranking {
+  margin-top: 16px;
 }
 
 .qualified-row td {
