@@ -74,6 +74,8 @@ const copyParticipantsStatus = document.querySelector("#copy-participants-status
 const resultsStatusBanner = document.querySelector("#results-status-banner");
 const saveResultsButton = document.querySelector("#save-results-button");
 const saveLiveStatusButton = document.querySelector("#save-live-status-button");
+const downloadBackupButton = document.querySelector("#download-backup-button");
+const downloadBackupStatus = document.querySelector("#download-backup-status");
 const resetLaunchDataButton = document.querySelector("#reset-launch-data-button");
 const resetLaunchDataStatus = document.querySelector("#reset-launch-data-status");
 const eliminatedTeamsContainer = document.querySelector("#admin-eliminated-teams");
@@ -1528,6 +1530,39 @@ async function resetLaunchData() {
   }
 }
 
+async function downloadBackup() {
+  downloadBackupButton.disabled = true;
+  try {
+    downloadBackupStatus.textContent = "Backup wordt gemaakt...";
+    const response = await fetch("/api/admin/backup");
+    const blob = await response.blob();
+    if (!response.ok) {
+      let message = "Backup downloaden mislukt";
+      try {
+        const data = JSON.parse(await blob.text());
+        message = data.error || message;
+      } catch {
+        // Keep the generic message when the response is not JSON.
+      }
+      throw new Error(message);
+    }
+
+    const disposition = response.headers.get("Content-Disposition") || "";
+    const fileName = disposition.match(/filename="([^"]+)"/)?.[1] || `wk-toto-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    downloadBackupStatus.textContent = `Backup gedownload: ${fileName}`;
+  } finally {
+    downloadBackupButton.disabled = false;
+  }
+}
+
 document.querySelector("#login-button").addEventListener("click", () => {
   login().catch(() => {
     loginStatus.textContent = "Login mislukt";
@@ -1568,6 +1603,12 @@ knockoutResultsContainer.addEventListener("change", (event) => {
 
 matchList.addEventListener("change", () => {
   applyAutomaticKnockoutState();
+});
+
+downloadBackupButton.addEventListener("click", () => {
+  downloadBackup().catch((error) => {
+    downloadBackupStatus.textContent = error.message || "Backup downloaden mislukt";
+  });
 });
 
 resetLaunchDataButton.addEventListener("click", () => {

@@ -684,10 +684,142 @@ h3 {
   background: var(--panel-alt);
 }
 
+.actual-groups-card {
+  padding-top: 12px;
+}
+
+.actual-groups-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  margin: -4px -6px 0;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.actual-groups-summary::-webkit-details-marker {
+  display: none;
+}
+
+.actual-groups-summary:hover {
+  background: rgba(12, 28, 108, 0.045);
+}
+
+.actual-groups-title,
+.actual-groups-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.actual-groups-chevron {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid rgba(39, 49, 182, 0.2);
+  border-radius: 6px;
+  background: rgba(22, 182, 255, 0.1);
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.actual-groups-chevron::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 2px solid var(--bg-deep);
+  border-bottom: 2px solid var(--bg-deep);
+  transform: translate(-50%, -62%) rotate(45deg);
+}
+
+.actual-groups-card:not([open]) .actual-groups-chevron::before {
+  transform: translate(-62%, -50%) rotate(-45deg);
+}
+
+.actual-groups-toggle {
+  border: 1px solid rgba(39, 49, 182, 0.2);
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: var(--bg-deep);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.actual-groups-toggle::before {
+  content: "Inklappen";
+}
+
+.actual-groups-card:not([open]) .actual-groups-toggle::before {
+  content: "Uitklappen";
+}
+
+.actual-groups-summary h2 {
+  margin-bottom: 0;
+}
+
+.actual-groups-content {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.actual-groups-content > .notice {
+  margin-bottom: 0;
+}
+
 .group-standings-grid {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.actual-group-standings-grid {
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.actual-group-standings-grid .group-card,
+.actual-third-ranking {
+  padding: 8px;
+}
+
+.actual-group-standings-grid .section-head,
+.actual-third-ranking .section-head {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.actual-group-standings-grid h3,
+.actual-third-ranking h3 {
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
+.actual-group-table {
+  font-size: 0.76rem;
+  line-height: 1.15;
+}
+
+.actual-group-table th,
+.actual-group-table td {
+  padding: 5px 6px;
+}
+
+.actual-group-table .team-with-flag {
+  gap: 0.22em;
+}
+
+.actual-group-table .team-flag {
+  width: 1em;
+  height: 0.72em;
 }
 
 .chip-list {
@@ -714,7 +846,7 @@ h3 {
 }
 
 .actual-third-ranking {
-  margin-top: 16px;
+  margin-top: 8px;
 }
 
 .qualified-row td {
@@ -1465,6 +1597,147 @@ th {
   gap: 12px;
 }
 
+.stand-page {
+  font-size: 0.88rem;
+}
+
+.stand-page .layout {
+  gap: 14px;
+}
+
+.stand-page .hero .lede,
+.stand-page .hero-pool-name,
+.stand-page .nav a,
+.stand-page .notice {
+  font-size: 0.82rem;
+}
+
+.stand-page .card {
+  padding: 16px;
+}
+
+.stand-page .card::before {
+  height: 4px;
+}
+
+.stand-page .card h2 {
+  margin-bottom: 10px;
+  font-size: 1.05rem;
+  line-height: 1.12;
+}
+
+.stand-page .card h3 {
+  font-size: 0.86rem;
+  line-height: 1.12;
+}
+
+.stand-page .pill {
+  gap: 5px;
+  padding: 5px 8px;
+  font-size: 0.74rem;
+}
+
+.stand-page table {
+  font-size: 0.74rem;
+}
+
+.stand-page th,
+.stand-page td {
+  padding: 6px 7px;
+}
+
+.stand-page .standings-table {
+  min-width: 650px;
+}
+
+.stand-page .standings-rank-head,
+.stand-page .standings-rank-cell {
+  min-width: 34px;
+  width: 34px;
+}
+
+.stand-page .standings-name-head,
+.stand-page .standings-name-cell {
+  left: 34px;
+  min-width: 122px;
+  max-width: 122px;
+}
+
+.stand-page .status-summary-grid {
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.stand-page .status-summary-card {
+  padding: 8px 10px;
+}
+
+.stand-page .status-summary-card strong {
+  margin-bottom: 3px;
+  font-size: 0.76rem;
+}
+
+.stand-page .status-summary-card p {
+  font-size: 0.82rem;
+}
+
+.stand-page .prediction-matrix-wrap {
+  gap: 10px;
+}
+
+.stand-page .prediction-matrix .matrix-name-head,
+.stand-page .prediction-matrix .matrix-name-cell,
+.stand-page .prediction-matrix .matrix-score {
+  font-size: 0.68rem;
+}
+
+.stand-page .matrix-match-col {
+  width: 46px;
+  min-width: 46px;
+  max-width: 46px;
+}
+
+.stand-page .matrix-score {
+  min-width: 46px;
+  width: 46px;
+  padding: 5px 4px !important;
+}
+
+.stand-page .matrix-score-multi,
+.stand-page .matrix-score-flag {
+  padding: 4px 3px !important;
+}
+
+.stand-page .matrix-score-team {
+  padding: 3px 2px !important;
+}
+
+.stand-page .matrix-match-title {
+  font-size: 0.66rem;
+}
+
+.stand-page .bonus-answer {
+  padding: 1px 4px;
+}
+
+.stand-page .bonus-overview-table {
+  min-width: 900px;
+}
+
+.stand-page .bonus-overview-table th,
+.stand-page .bonus-overview-table td,
+.stand-page .knockout-summary-table th,
+.stand-page .knockout-summary-table td,
+.stand-page .knockout-slot-table th,
+.stand-page .knockout-slot-table td {
+  font-size: 0.66rem;
+  padding: 4px 4px;
+}
+
+.stand-page .knockout-summary-section {
+  margin-bottom: 14px;
+}
+
 .status-summary-grid {
   display: grid;
   gap: 12px;
@@ -1586,6 +1859,52 @@ th {
 }
 
 @media (max-width: 720px) {
+  .actual-groups-card {
+    padding: 12px;
+  }
+
+  .actual-groups-summary {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .actual-groups-summary h2 {
+    font-size: 1.12rem;
+  }
+
+  .actual-groups-content {
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .actual-group-standings-grid {
+    gap: 6px;
+  }
+
+  .actual-group-standings-grid .group-card,
+  .actual-third-ranking {
+    padding: 6px;
+  }
+
+  .actual-group-standings-grid .section-head,
+  .actual-third-ranking .section-head {
+    margin-bottom: 5px;
+  }
+
+  .actual-group-standings-grid h3,
+  .actual-third-ranking h3 {
+    font-size: 0.94rem;
+  }
+
+  .actual-group-table {
+    font-size: 0.72rem;
+  }
+
+  .actual-group-table th,
+  .actual-group-table td {
+    padding: 4px 5px;
+  }
+
   .standings-table {
     min-width: 720px;
   }
@@ -1614,6 +1933,141 @@ th {
     max-width: 120px;
     padding: 8px 6px !important;
     font-size: 0.76rem;
+  }
+
+  .stand-page {
+    font-size: 0.8rem;
+  }
+
+  .stand-page .layout {
+    gap: 10px;
+  }
+
+  .stand-page .card,
+  .stand-page .actual-groups-card {
+    padding: 10px;
+  }
+
+  .stand-page .card h2,
+  .stand-page .actual-groups-summary h2 {
+    font-size: 0.98rem;
+  }
+
+  .stand-page .card h3,
+  .stand-page .actual-group-standings-grid h3,
+  .stand-page .actual-third-ranking h3 {
+    font-size: 0.78rem;
+  }
+
+  .stand-page .hero .lede,
+  .stand-page .hero-pool-name,
+  .stand-page .nav a,
+  .stand-page .notice {
+    font-size: 0.76rem;
+  }
+
+  .stand-page .actual-groups-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .stand-page .actual-groups-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .stand-page .actual-groups-toggle,
+  .stand-page .pill {
+    padding: 4px 6px;
+    font-size: 0.68rem;
+  }
+
+  .stand-page .actual-groups-content {
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .stand-page .actual-group-standings-grid .group-card,
+  .stand-page .actual-third-ranking {
+    padding: 5px;
+  }
+
+  .stand-page .actual-group-table {
+    font-size: 0.64rem;
+  }
+
+  .stand-page .actual-group-table th,
+  .stand-page .actual-group-table td {
+    padding: 3px 4px;
+  }
+
+  .stand-page .standings-table {
+    min-width: 600px;
+  }
+
+  .stand-page .standings-rank-head,
+  .stand-page .standings-rank-cell {
+    min-width: 30px;
+    width: 30px;
+  }
+
+  .stand-page .standings-name-head,
+  .stand-page .standings-name-cell {
+    left: 30px;
+    min-width: 108px;
+    max-width: 108px;
+    font-size: 0.68rem;
+  }
+
+  .stand-page th,
+  .stand-page td {
+    padding: 4px 5px;
+  }
+
+  .stand-page .status-summary-grid {
+    gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  }
+
+  .stand-page .status-summary-card {
+    padding: 6px 7px;
+  }
+
+  .stand-page .status-summary-card strong {
+    font-size: 0.68rem;
+  }
+
+  .stand-page .status-summary-card p {
+    font-size: 0.74rem;
+  }
+
+  .stand-page .prediction-matrix .matrix-name-head,
+  .stand-page .prediction-matrix .matrix-name-cell,
+  .stand-page .prediction-matrix .matrix-score {
+    font-size: 0.62rem;
+  }
+
+  .stand-page .matrix-match-col,
+  .stand-page .matrix-score {
+    min-width: 40px;
+    width: 40px;
+    max-width: 40px;
+  }
+
+  .stand-page .matrix-score {
+    padding: 4px 3px !important;
+  }
+
+  .stand-page .bonus-overview-table {
+    min-width: 760px;
+  }
+
+  .stand-page .bonus-name-head,
+  .stand-page .bonus-name-cell {
+    min-width: 102px;
+    max-width: 102px;
+    padding: 5px 4px !important;
+    font-size: 0.66rem;
   }
 
   .section-head,

@@ -318,7 +318,7 @@ function renderUpcomingMatches(upcomingMatchPredictions, standings, unlocked) {
 function renderActualGroupTable(group) {
   return `
     <div class="ranking-table-wrap">
-      <table>
+      <table class="actual-group-table">
         <thead>
           <tr>
             <th>#</th>
@@ -389,7 +389,7 @@ function renderActualGroupStandings(snapshot) {
       <span class="pill muted">Beste 8 gaan door</span>
     </div>
     <div class="ranking-table-wrap">
-      <table>
+      <table class="actual-group-table">
         <thead>
           <tr>
             <th>#</th>

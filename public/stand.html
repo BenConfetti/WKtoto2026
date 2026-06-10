@@ -6,7 +6,7 @@
     <title>WK Toto | Stand</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
-  <body>
+  <body class="stand-page">
     <header class="hero">
       <div class="hero-brand">
         <img src="/wk-logo.png" alt="WK 2026 logo">
@@ -74,19 +74,27 @@
         </div>
       </section>
 
-      <section class="card">
-        <div class="section-head">
-          <h2>Werkelijke groepsstanden</h2>
-          <span class="pill muted" id="actual-group-progress">0 wedstrijden verwerkt</span>
+      <details class="card actual-groups-card" open>
+        <summary class="actual-groups-summary">
+          <span class="actual-groups-title">
+            <span class="actual-groups-chevron" aria-hidden="true"></span>
+            <h2>Werkelijke groepsstanden</h2>
+          </span>
+          <span class="actual-groups-actions">
+            <span class="pill muted" id="actual-group-progress">0 wedstrijden verwerkt</span>
+            <span class="actual-groups-toggle" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="actual-groups-content">
+          <p class="notice">Op basis van afgeronde groepswedstrijden.</p>
+          <div class="group-standings-grid actual-group-standings-grid" id="actual-group-standings">
+            <p class="notice">Groepsstanden worden geladen...</p>
+          </div>
+          <div class="third-ranking-card actual-third-ranking" id="actual-third-ranking">
+            <p class="notice">Stand van nummers drie wordt geladen...</p>
+          </div>
         </div>
-        <p class="notice">Op basis van afgeronde groepswedstrijden.</p>
-        <div class="group-standings-grid" id="actual-group-standings">
-          <p class="notice">Groepsstanden worden geladen...</p>
-        </div>
-        <div class="third-ranking-card actual-third-ranking" id="actual-third-ranking">
-          <p class="notice">Stand van nummers drie wordt geladen...</p>
-        </div>
-      </section>
+      </details>
 
       <section class="card">
         <h2>Knock-outlanden</h2>

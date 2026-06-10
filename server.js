@@ -2334,6 +2334,42 @@ async function handleAdminResetLaunchData(req, res) {
   });
 }
 
+async function handleAdminDownloadBackup(req, res) {
+  if (!isAdmin(req)) {
+    sendJson(res, 401, { error: "Niet ingelogd als admin" });
+    return;
+  }
+
+  const [competition, matches, participants, rules, pools, knockoutResults] = await Promise.all([
+    readJson("competition.json", null),
+    readJson("matches.json", []),
+    readJson("participants.json", []),
+    readJson("rules.json", {}),
+    readJson("pools.json", []),
+    readJson("knockout-results.json", []),
+  ]);
+  const createdAt = new Date().toISOString();
+  const backup = {
+    createdAt,
+    files: {
+      "competition.json": competition,
+      "matches.json": matches,
+      "participants.json": participants,
+      "rules.json": rules,
+      "pools.json": pools,
+      "knockout-results.json": knockoutResults,
+    },
+  };
+  const fileName = `wk-toto-backup-${timestampForFileName()}.json`;
+
+  res.writeHead(200, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Disposition": `attachment; filename="${fileName}"`,
+    "Cache-Control": "no-store",
+  });
+  res.end(JSON.stringify(backup, null, 2) + "\n");
+}
+
 async function route(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
@@ -2414,6 +2450,11 @@ async function route(req, res) {
 
     if (req.method === "POST" && pathname === "/api/admin/reset-launch-data") {
       await handleAdminResetLaunchData(req, res);
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/admin/backup") {
+      await handleAdminDownloadBackup(req, res);
       return;
     }
 
