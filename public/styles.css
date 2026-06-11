@@ -1691,6 +1691,21 @@ th {
   font-size: 0.68rem;
 }
 
+.stand-page .prediction-matrix .matrix-name-head,
+.stand-page .prediction-matrix .matrix-name-cell {
+  width: 1%;
+  min-width: max-content;
+  max-width: none;
+  padding: 5px 6px !important;
+  white-space: nowrap;
+}
+
+.stand-page .prediction-matrix .matrix-name-cell .table-link,
+.stand-page .prediction-matrix .matrix-name-cell span {
+  display: inline-block;
+  white-space: nowrap;
+}
+
 .stand-page .matrix-match-col {
   width: 46px;
   min-width: 46px;
@@ -1736,6 +1751,25 @@ th {
 
 .stand-page .knockout-summary-section {
   margin-bottom: 14px;
+}
+
+.stand-page .knockout-summary-name-head,
+.stand-page .knockout-summary-name-cell,
+.stand-page .knockout-name-head,
+.stand-page .knockout-name-cell {
+  width: 1%;
+  min-width: max-content;
+  max-width: none;
+  padding: 4px 6px !important;
+  white-space: nowrap;
+}
+
+.stand-page .knockout-summary-name-cell .table-link,
+.stand-page .knockout-name-cell .table-link,
+.stand-page .knockout-summary-name-cell span,
+.stand-page .knockout-name-cell span {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .status-summary-grid {
@@ -2047,6 +2081,14 @@ th {
     font-size: 0.62rem;
   }
 
+  .stand-page .prediction-matrix .matrix-name-head,
+  .stand-page .prediction-matrix .matrix-name-cell {
+    width: 1%;
+    min-width: max-content;
+    max-width: none;
+    padding: 4px 5px !important;
+  }
+
   .stand-page .matrix-match-col,
   .stand-page .matrix-score {
     min-width: 40px;
@@ -2068,6 +2110,17 @@ th {
     max-width: 102px;
     padding: 5px 4px !important;
     font-size: 0.66rem;
+  }
+
+  .stand-page .knockout-summary-name-head,
+  .stand-page .knockout-summary-name-cell,
+  .stand-page .knockout-name-head,
+  .stand-page .knockout-name-cell {
+    width: 1%;
+    min-width: max-content;
+    max-width: none;
+    padding: 4px 5px !important;
+    font-size: 0.62rem;
   }
 
   .section-head,
