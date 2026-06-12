@@ -743,16 +743,22 @@ function computeTotalGoalsPoints(predictedTotalGoals, actualTotalGoals, maxPoint
 
 function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   let total = 0;
+  const finalOpenQuestionsUnlocked = Boolean(bonusResults.championTeam);
 
   if (bonusPredictions.championTeam && bonusPredictions.championTeam === bonusResults.championTeam) {
     total += rules.championPoints;
   }
 
-  if (bonusPredictions.mostGoalsTeam && bonusPredictions.mostGoalsTeam === bonusResults.mostGoalsTeam) {
+  if (
+    finalOpenQuestionsUnlocked &&
+    bonusPredictions.mostGoalsTeam &&
+    bonusPredictions.mostGoalsTeam === bonusResults.mostGoalsTeam
+  ) {
     total += rules.mostGoalsTeamPoints;
   }
 
   if (
+    finalOpenQuestionsUnlocked &&
     bonusPredictions.mostConcededTeam &&
     bonusPredictions.mostConcededTeam === bonusResults.mostConcededTeam
   ) {
@@ -796,7 +802,6 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
     bonusResults.topScorerAnswers?.length ? bonusResults.topScorerAnswers : bonusResults.topScorer,
   ).map(normalizeFreeText);
 
-  const finalOpenQuestionsUnlocked = Boolean(bonusResults.championTeam);
   const dutchTopScorerUnlocked =
     finalOpenQuestionsUnlocked || sanitizeTeamList(rules.eliminatedTeams || []).includes("Nederland");
 
@@ -1086,11 +1091,27 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
     return eliminatedTeams.has(prediction) ? "wrong" : "pending";
   }
 
-  if (questionKey === "mostGoalsTeam" && bonusResults.mostGoalsTeam) {
+  if (questionKey === "mostGoalsTeam") {
+    if (!bonusResults.championTeam) {
+      return "pending";
+    }
+
+    if (!bonusResults.mostGoalsTeam) {
+      return "pending";
+    }
+
     return prediction === bonusResults.mostGoalsTeam ? "correct" : "wrong";
   }
 
-  if (questionKey === "mostConcededTeam" && bonusResults.mostConcededTeam) {
+  if (questionKey === "mostConcededTeam") {
+    if (!bonusResults.championTeam) {
+      return "pending";
+    }
+
+    if (!bonusResults.mostConcededTeam) {
+      return "pending";
+    }
+
     return prediction === bonusResults.mostConcededTeam ? "correct" : "wrong";
   }
 
