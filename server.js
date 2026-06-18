@@ -1751,17 +1751,20 @@ async function handleStandings(req, res, pool) {
   const teamStats = new Map();
 
   for (const match of finishedWithScores) {
-    if (!teamStats.has(match.homeTeam)) {
-      teamStats.set(match.homeTeam, { scored: 0, conceded: 0 });
+    const homeTeam = canonicalTeamName(match.homeTeam);
+    const awayTeam = canonicalTeamName(match.awayTeam);
+
+    if (!teamStats.has(homeTeam)) {
+      teamStats.set(homeTeam, { scored: 0, conceded: 0 });
     }
-    if (!teamStats.has(match.awayTeam)) {
-      teamStats.set(match.awayTeam, { scored: 0, conceded: 0 });
+    if (!teamStats.has(awayTeam)) {
+      teamStats.set(awayTeam, { scored: 0, conceded: 0 });
     }
 
-    teamStats.get(match.homeTeam).scored += match.homeScore;
-    teamStats.get(match.homeTeam).conceded += match.awayScore;
-    teamStats.get(match.awayTeam).scored += match.awayScore;
-    teamStats.get(match.awayTeam).conceded += match.homeScore;
+    teamStats.get(homeTeam).scored += match.homeScore;
+    teamStats.get(homeTeam).conceded += match.awayScore;
+    teamStats.get(awayTeam).scored += match.awayScore;
+    teamStats.get(awayTeam).conceded += match.homeScore;
   }
 
   const manualKnockoutGoalsSoFar = Number(effectiveRules.liveLeaders?.knockoutGoalsSoFar ?? 0);
