@@ -316,7 +316,14 @@ function predictionOutcomeLabel(prediction, match, rules) {
 
 function canonicalTeamName(value) {
   const trimmed = String(value || "").trim();
-  if (trimmed === "Cura\u00e7ao" || trimmed === "Cura\u00c3\u00a7ao") {
+  const comparable = trimmed
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\uFFFD/g, "")
+    .replace(/[^a-z]/gi, "")
+    .toLocaleLowerCase("nl-NL");
+
+  if (comparable === "curacao" || comparable === "curaao") {
     return "Curacao";
   }
 
@@ -341,7 +348,13 @@ function slugify(value) {
 }
 
 function getGroupStageMatches(matches) {
-  return matches.filter((match) => match.stage === "Groepsfase");
+  return matches
+    .filter((match) => match.stage === "Groepsfase")
+    .map((match) => ({
+      ...match,
+      homeTeam: canonicalTeamName(match.homeTeam),
+      awayTeam: canonicalTeamName(match.awayTeam),
+    }));
 }
 
 function getGroupKey(match) {

@@ -84,7 +84,14 @@
 
   function canonicalTeamName(team) {
     const value = String(team || "").trim();
-    return value === "Cura\u00e7ao" || value === "Cura\u00c3\u00a7ao" ? "Curacao" : value;
+    const comparable = value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\uFFFD/g, "")
+      .replace(/[^a-z]/gi, "")
+      .toLocaleLowerCase("nl-NL");
+
+    return comparable === "curacao" || comparable === "curaao" ? "Curacao" : value;
   }
 
   function flag(team) {
