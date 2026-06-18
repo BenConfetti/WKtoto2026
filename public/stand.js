@@ -68,7 +68,7 @@ function participantNameCell(participant, unlocked) {
 }
 
 function shortenTeamName(team) {
-  const normalized = String(team || "").trim();
+  const normalized = window.teamFlags?.canonicalTeamName(team) || String(team || "").trim();
   const abbreviations = {
     "Algerije": "ALG",
     "Argentinië": "ARG",
@@ -78,7 +78,7 @@ function shortenTeamName(team) {
     "Brazilië": "BRA",
     "Canada": "CAN",
     "Colombia": "COL",
-    "Curaçao": "CUR",
+    "Curacao": "CUR",
     "DR Congo": "COD",
     "Duitsland": "GER",
     "Ecuador": "ECU",

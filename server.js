@@ -61,7 +61,7 @@ const bookmakerOdds = {
   Irak: 1501,
   "Nieuw-Zeeland": 1501,
   Panama: 1501,
-  Curaçao: 2001,
+  Curacao: 2001,
   Kaapverdie: 2001,
   Oezbekistan: 2001,
   Jordanië: 2501,
@@ -314,12 +314,21 @@ function predictionOutcomeLabel(prediction, match, rules) {
   return "miss";
 }
 
+function canonicalTeamName(value) {
+  const trimmed = String(value || "").trim();
+  if (trimmed === "Cura\u00e7ao" || trimmed === "Cura\u00c3\u00a7ao") {
+    return "Curacao";
+  }
+
+  return trimmed;
+}
+
 function uniqueNormalized(values) {
-  return [...new Set((values || []).map((value) => String(value).trim()).filter(Boolean))];
+  return [...new Set((values || []).map(canonicalTeamName).filter(Boolean))];
 }
 
 function normalizeSlotValues(values) {
-  return Array.isArray(values) ? values.map((value) => String(value || "").trim()) : [];
+  return Array.isArray(values) ? values.map(canonicalTeamName) : [];
 }
 
 function slugify(value) {
@@ -643,13 +652,13 @@ function computeKnockoutPoints(knockoutPredictions, knockoutResults, rules) {
 
 function sanitizeBonusAnswers(payload) {
   return {
-    championTeam: String(payload?.championTeam || "").trim(),
-    mostGoalsTeam: String(payload?.mostGoalsTeam || "").trim(),
-    mostConcededTeam: String(payload?.mostConcededTeam || "").trim(),
-    bestAfricanTeam: String(payload?.bestAfricanTeam || "").trim(),
-    bestAsianTeam: String(payload?.bestAsianTeam || "").trim(),
-    bestCentralAmericanTeam: String(payload?.bestCentralAmericanTeam || "").trim(),
-    bestHostTeam: String(payload?.bestHostTeam || "").trim(),
+    championTeam: canonicalTeamName(payload?.championTeam),
+    mostGoalsTeam: canonicalTeamName(payload?.mostGoalsTeam),
+    mostConcededTeam: canonicalTeamName(payload?.mostConcededTeam),
+    bestAfricanTeam: canonicalTeamName(payload?.bestAfricanTeam),
+    bestAsianTeam: canonicalTeamName(payload?.bestAsianTeam),
+    bestCentralAmericanTeam: canonicalTeamName(payload?.bestCentralAmericanTeam),
+    bestHostTeam: canonicalTeamName(payload?.bestHostTeam),
     topScorer: String(payload?.topScorer || "").trim(),
     topScorerNetherlands: String(payload?.topScorerNetherlands || "").trim(),
     totalGoals:
@@ -666,28 +675,35 @@ function sanitizeAnswerList(values) {
   return [...new Set(raw.map((value) => String(value || "").trim()).filter(Boolean))];
 }
 
+function sanitizeTeamAnswerList(values) {
+  const raw =
+    Array.isArray(values) ? values : String(values || "").split(/\r?\n/);
+
+  return [...new Set(raw.map(canonicalTeamName).filter(Boolean))];
+}
+
 function sanitizeBonusResults(payload) {
   const topScorerAnswers = sanitizeAnswerList(
     payload?.topScorerAnswers && Array.isArray(payload.topScorerAnswers)
       ? payload.topScorerAnswers
       : payload?.topScorerAnswers ?? payload?.topScorer,
   );
-  const bestAfricanTeamAnswers = sanitizeAnswerList(
+  const bestAfricanTeamAnswers = sanitizeTeamAnswerList(
     payload?.bestAfricanTeamAnswers && Array.isArray(payload.bestAfricanTeamAnswers)
       ? payload.bestAfricanTeamAnswers
       : payload?.bestAfricanTeamAnswers ?? payload?.bestAfricanTeam,
   );
-  const bestAsianTeamAnswers = sanitizeAnswerList(
+  const bestAsianTeamAnswers = sanitizeTeamAnswerList(
     payload?.bestAsianTeamAnswers && Array.isArray(payload.bestAsianTeamAnswers)
       ? payload.bestAsianTeamAnswers
       : payload?.bestAsianTeamAnswers ?? payload?.bestAsianTeam,
   );
-  const bestCentralAmericanTeamAnswers = sanitizeAnswerList(
+  const bestCentralAmericanTeamAnswers = sanitizeTeamAnswerList(
     payload?.bestCentralAmericanTeamAnswers && Array.isArray(payload.bestCentralAmericanTeamAnswers)
       ? payload.bestCentralAmericanTeamAnswers
       : payload?.bestCentralAmericanTeamAnswers ?? payload?.bestCentralAmericanTeam,
   );
-  const bestHostTeamAnswers = sanitizeAnswerList(
+  const bestHostTeamAnswers = sanitizeTeamAnswerList(
     payload?.bestHostTeamAnswers && Array.isArray(payload.bestHostTeamAnswers)
       ? payload.bestHostTeamAnswers
       : payload?.bestHostTeamAnswers ?? payload?.bestHostTeam,
@@ -699,9 +715,9 @@ function sanitizeBonusResults(payload) {
   );
 
   return {
-    championTeam: String(payload?.championTeam || "").trim(),
-    mostGoalsTeam: String(payload?.mostGoalsTeam || "").trim(),
-    mostConcededTeam: String(payload?.mostConcededTeam || "").trim(),
+    championTeam: canonicalTeamName(payload?.championTeam),
+    mostGoalsTeam: canonicalTeamName(payload?.mostGoalsTeam),
+    mostConcededTeam: canonicalTeamName(payload?.mostConcededTeam),
     bestAfricanTeam: bestAfricanTeamAnswers[0] || "",
     bestAfricanTeamAnswers,
     bestAsianTeam: bestAsianTeamAnswers[0] || "",
@@ -744,23 +760,30 @@ function computeTotalGoalsPoints(predictedTotalGoals, actualTotalGoals, maxPoint
 function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   let total = 0;
   const finalOpenQuestionsUnlocked = Boolean(bonusResults.championTeam);
+  const championPrediction = canonicalTeamName(bonusPredictions.championTeam);
+  const mostGoalsPrediction = canonicalTeamName(bonusPredictions.mostGoalsTeam);
+  const mostConcededPrediction = canonicalTeamName(bonusPredictions.mostConcededTeam);
+  const bestAfricanPrediction = canonicalTeamName(bonusPredictions.bestAfricanTeam);
+  const bestAsianPrediction = canonicalTeamName(bonusPredictions.bestAsianTeam);
+  const bestCentralAmericanPrediction = canonicalTeamName(bonusPredictions.bestCentralAmericanTeam);
+  const bestHostPrediction = canonicalTeamName(bonusPredictions.bestHostTeam);
 
-  if (bonusPredictions.championTeam && bonusPredictions.championTeam === bonusResults.championTeam) {
+  if (championPrediction && championPrediction === canonicalTeamName(bonusResults.championTeam)) {
     total += rules.championPoints;
   }
 
   if (
     finalOpenQuestionsUnlocked &&
-    bonusPredictions.mostGoalsTeam &&
-    bonusPredictions.mostGoalsTeam === bonusResults.mostGoalsTeam
+    mostGoalsPrediction &&
+    mostGoalsPrediction === canonicalTeamName(bonusResults.mostGoalsTeam)
   ) {
     total += rules.mostGoalsTeamPoints;
   }
 
   if (
     finalOpenQuestionsUnlocked &&
-    bonusPredictions.mostConcededTeam &&
-    bonusPredictions.mostConcededTeam === bonusResults.mostConcededTeam
+    mostConcededPrediction &&
+    mostConcededPrediction === canonicalTeamName(bonusResults.mostConcededTeam)
   ) {
     total += rules.mostConcededTeamPoints;
   }
@@ -768,14 +791,14 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   const acceptedAfricanTeams = sanitizeAnswerList(
     bonusResults.bestAfricanTeamAnswers?.length ? bonusResults.bestAfricanTeamAnswers : bonusResults.bestAfricanTeam,
   );
-  if (bonusPredictions.bestAfricanTeam && acceptedAfricanTeams.includes(bonusPredictions.bestAfricanTeam)) {
+  if (bestAfricanPrediction && acceptedAfricanTeams.map(canonicalTeamName).includes(bestAfricanPrediction)) {
     total += rules.bestAfricanTeamPoints;
   }
 
   const acceptedAsianTeams = sanitizeAnswerList(
     bonusResults.bestAsianTeamAnswers?.length ? bonusResults.bestAsianTeamAnswers : bonusResults.bestAsianTeam,
   );
-  if (bonusPredictions.bestAsianTeam && acceptedAsianTeams.includes(bonusPredictions.bestAsianTeam)) {
+  if (bestAsianPrediction && acceptedAsianTeams.map(canonicalTeamName).includes(bestAsianPrediction)) {
     total += rules.bestAsianTeamPoints;
   }
 
@@ -785,8 +808,8 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
       : bonusResults.bestCentralAmericanTeam,
   );
   if (
-    bonusPredictions.bestCentralAmericanTeam &&
-    acceptedCentralAmericanTeams.includes(bonusPredictions.bestCentralAmericanTeam)
+    bestCentralAmericanPrediction &&
+    acceptedCentralAmericanTeams.map(canonicalTeamName).includes(bestCentralAmericanPrediction)
   ) {
     total += rules.bestCentralAmericanTeamPoints;
   }
@@ -794,7 +817,7 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   const acceptedHostTeams = sanitizeAnswerList(
     bonusResults.bestHostTeamAnswers?.length ? bonusResults.bestHostTeamAnswers : bonusResults.bestHostTeam,
   );
-  if (bonusPredictions.bestHostTeam && acceptedHostTeams.includes(bonusPredictions.bestHostTeam)) {
+  if (bestHostPrediction && acceptedHostTeams.map(canonicalTeamName).includes(bestHostPrediction)) {
     total += rules.bestHostTeamPoints;
   }
 
@@ -838,7 +861,7 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
 }
 
 function normalizeStatsTeamName(team) {
-  const value = String(team || "").trim();
+  const value = canonicalTeamName(team);
   if (value === "VS") {
     return "Verenigde Staten";
   }
@@ -1078,17 +1101,19 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   if (prediction === "" || prediction === null || prediction === undefined) {
     return "empty";
   }
+  const normalizedPrediction = canonicalTeamName(prediction);
 
   if (questionKey === "championTeam") {
-    if (bonusResults.championTeam && prediction === bonusResults.championTeam) {
+    const championTeam = canonicalTeamName(bonusResults.championTeam);
+    if (championTeam && normalizedPrediction === championTeam) {
       return "correct";
     }
 
-    if (bonusResults.championTeam && prediction !== bonusResults.championTeam) {
+    if (championTeam && normalizedPrediction !== championTeam) {
       return "wrong";
     }
 
-    return eliminatedTeams.has(prediction) ? "wrong" : "pending";
+    return eliminatedTeams.has(normalizedPrediction) ? "wrong" : "pending";
   }
 
   if (questionKey === "mostGoalsTeam") {
@@ -1100,7 +1125,7 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
       return "pending";
     }
 
-    return prediction === bonusResults.mostGoalsTeam ? "correct" : "wrong";
+    return normalizedPrediction === canonicalTeamName(bonusResults.mostGoalsTeam) ? "correct" : "wrong";
   }
 
   if (questionKey === "mostConcededTeam") {
@@ -1112,7 +1137,7 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
       return "pending";
     }
 
-    return prediction === bonusResults.mostConcededTeam ? "correct" : "wrong";
+    return normalizedPrediction === canonicalTeamName(bonusResults.mostConcededTeam) ? "correct" : "wrong";
   }
 
   if (questionKey === "bestAfricanTeam") {
@@ -1120,7 +1145,7 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
       bonusResults.bestAfricanTeamAnswers?.length ? bonusResults.bestAfricanTeamAnswers : bonusResults.bestAfricanTeam,
     );
     if (accepted.length) {
-      return accepted.includes(prediction) ? "correct" : "wrong";
+      return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
     return "pending";
   }
@@ -1130,7 +1155,7 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
       bonusResults.bestAsianTeamAnswers?.length ? bonusResults.bestAsianTeamAnswers : bonusResults.bestAsianTeam,
     );
     if (accepted.length) {
-      return accepted.includes(prediction) ? "correct" : "wrong";
+      return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
     return "pending";
   }
@@ -1142,7 +1167,7 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
         : bonusResults.bestCentralAmericanTeam,
     );
     if (accepted.length) {
-      return accepted.includes(prediction) ? "correct" : "wrong";
+      return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
     return "pending";
   }
@@ -1152,7 +1177,7 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
       bonusResults.bestHostTeamAnswers?.length ? bonusResults.bestHostTeamAnswers : bonusResults.bestHostTeam,
     );
     if (accepted.length) {
-      return accepted.includes(prediction) ? "correct" : "wrong";
+      return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
     return "pending";
   }

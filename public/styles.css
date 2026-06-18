@@ -1647,20 +1647,36 @@ th {
 }
 
 .stand-page .standings-table {
-  min-width: 650px;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
 }
 
 .stand-page .standings-rank-head,
 .stand-page .standings-rank-cell {
-  min-width: 34px;
-  width: 34px;
+  min-width: 32px;
+  width: 32px;
 }
 
 .stand-page .standings-name-head,
 .stand-page .standings-name-cell {
-  left: 34px;
-  min-width: 122px;
-  max-width: 122px;
+  left: 32px;
+  width: clamp(112px, 34vw, 170px);
+  min-width: 112px;
+  max-width: 170px;
+}
+
+.stand-page .standings-name-cell .table-link,
+.stand-page .standings-name-cell span {
+  overflow-wrap: anywhere;
+}
+
+.stand-page .standings-points-head,
+.stand-page .standings-table td:nth-child(n + 3) {
+  width: 54px;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
 }
 
 .stand-page .status-summary-grid {
@@ -2036,26 +2052,38 @@ th {
   }
 
   .stand-page .standings-table {
-    min-width: 600px;
+    width: 100%;
+    min-width: 0;
   }
 
   .stand-page .standings-rank-head,
   .stand-page .standings-rank-cell {
-    min-width: 30px;
-    width: 30px;
+    min-width: 26px;
+    width: 26px;
   }
 
   .stand-page .standings-name-head,
   .stand-page .standings-name-cell {
-    left: 30px;
-    min-width: 108px;
-    max-width: 108px;
-    font-size: 0.68rem;
+    left: 26px;
+    width: 102px;
+    min-width: 102px;
+    max-width: 102px;
+    font-size: 0.64rem;
+    line-height: 1.08;
   }
 
   .stand-page th,
   .stand-page td {
     padding: 4px 5px;
+  }
+
+  .stand-page .standings-points-head,
+  .stand-page .standings-table td:nth-child(n + 3) {
+    width: calc((100vw - 20px - 26px - 102px) / 4);
+    min-width: 0;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 0.62rem;
   }
 
   .stand-page .status-summary-grid {

@@ -36,7 +36,7 @@ TEAM_TRANSLATIONS = {
     "Cape Verde": "Kaapverdie",
     "Colombia": "Colombia",
     "Croatia": "Kroatie",
-    "Curaçao": "Curaçao",
+    "Curacao": "Curacao",
     "Czech Rep.": "Tsjechië",
     "DR Congo": "DR Congo",
     "Ecuador": "Ecuador",

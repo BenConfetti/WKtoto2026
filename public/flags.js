@@ -19,8 +19,6 @@
     Canada: "ca",
     Colombia: "co",
     Curacao: "cw",
-    "Cura\u00e7ao": "cw",
-    "Cura\u00c3\u00a7ao": "cw",
     "DR Congo": "cd",
     Duitsland: "de",
     Ecuador: "ec",
@@ -84,8 +82,13 @@
       .replaceAll("'", "&#39;");
   }
 
+  function canonicalTeamName(team) {
+    const value = String(team || "").trim();
+    return value === "Cura\u00e7ao" || value === "Cura\u00c3\u00a7ao" ? "Curacao" : value;
+  }
+
   function flag(team) {
-    const code = codes[String(team || "").trim()];
+    const code = codes[canonicalTeamName(team)];
     if (!code) {
       return "";
     }
@@ -94,10 +97,11 @@
   }
 
   function team(teamName, label = teamName) {
-    const icon = flag(teamName);
-    const text = escapeHtml(label);
+    const normalizedTeam = canonicalTeamName(teamName);
+    const icon = flag(normalizedTeam);
+    const text = escapeHtml(canonicalTeamName(label));
     return icon ? `<span class="team-with-flag">${icon}<span>${text}</span></span>` : text;
   }
 
-  window.teamFlags = { flag, team };
+  window.teamFlags = { canonicalTeamName, flag, team };
 })();
