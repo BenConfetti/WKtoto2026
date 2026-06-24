@@ -489,13 +489,33 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
       };
     });
 
-  const scoreCellStyle = (score, roundKey, tone) => {
-    const roundMax = roundMeta[roundKey]?.slots || 0;
-    if (!score || !roundMax) {
+  const scoreRangesByType = Object.fromEntries(
+    ["correctScores", "wrongScores"].map((scoreKey) => [
+      scoreKey,
+      Object.fromEntries(
+        roundOrder.map((roundKey) => {
+          const values = summaryScores
+            .map((entry) => entry[scoreKey][roundKey] || 0)
+            .filter((value) => value > 0);
+          return [
+            roundKey,
+            {
+              min: values.length ? Math.min(...values) : 0,
+              max: values.length ? Math.max(...values) : 0,
+            },
+          ];
+        }),
+      ),
+    ]),
+  );
+
+  const scoreCellStyle = (score, roundKey, tone, scoreKey) => {
+    const range = scoreRangesByType[scoreKey]?.[roundKey] || { min: 0, max: 0 };
+    if (!score || !range.max) {
       return "";
     }
 
-    const ratio = Math.max(0, Math.min(1, score / roundMax));
+    const ratio = range.max === range.min ? 1 : Math.max(0, Math.min(1, (score - range.min) / (range.max - range.min)));
     const lightness = Math.round(96 - ratio * 48);
     const saturation = Math.round(42 + ratio * 34);
     const hue = tone === "wrong" ? 4 : 138;
@@ -503,16 +523,16 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
     return ` style="background:hsl(${hue} ${saturation}% ${lightness}%);color:${textColor}"`;
   };
 
-  const renderScoreCell = (score, roundKey, tone) => {
+  const renderScoreCell = (score, roundKey, tone, scoreKey) => {
     const roundMax = roundMeta[roundKey]?.slots || 0;
     const label = tone === "wrong" ? "onjuist" : "juist";
-    return `<td class="knockout-score-cell"${scoreCellStyle(score, roundKey, tone)} title="${score} van ${roundMax} ${label}">${score}</td>`;
+    return `<td class="knockout-score-cell"${scoreCellStyle(score, roundKey, tone, scoreKey)} title="${score} van ${roundMax} ${label}">${score}</td>`;
   };
 
   const renderSummaryRows = (scoreKey, tone) => summaryScores
     .map(({ participant, [scoreKey]: scores }) => {
       const cells = roundOrder
-        .map((roundKey) => renderScoreCell(scores[roundKey] || 0, roundKey, tone))
+        .map((roundKey) => renderScoreCell(scores[roundKey] || 0, roundKey, tone, scoreKey))
         .join("");
 
       return `
