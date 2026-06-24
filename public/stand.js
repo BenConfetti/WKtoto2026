@@ -469,37 +469,50 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
 
   const summaryScores = participantRows
     .map((participant) => {
-      const scores = Object.fromEntries(
+      const correctScores = Object.fromEntries(
         roundOrder.map((roundKey) => {
           const selections = groupedRounds.get(roundKey)?.byParticipant.get(participant.id) || [];
           return [roundKey, selections.filter((selection) => selection.status === "correct").length];
         }),
       );
+      const wrongScores = Object.fromEntries(
+        roundOrder.map((roundKey) => {
+          const selections = groupedRounds.get(roundKey)?.byParticipant.get(participant.id) || [];
+          return [roundKey, selections.filter((selection) => selection.status === "wrong").length];
+        }),
+      );
 
       return {
         participant,
-        scores,
+        correctScores,
+        wrongScores,
       };
     });
 
-  const highestScoreByRound = Object.fromEntries(
-    roundOrder.map((roundKey) => [
-      roundKey,
-      Math.max(0, ...summaryScores.map((entry) => entry.scores[roundKey] || 0)),
-    ]),
-  );
-
-  const renderScoreCell = (score, roundKey) => {
+  const scoreCellStyle = (score, roundKey, tone) => {
     const roundMax = roundMeta[roundKey]?.slots || 0;
-    const highestScore = highestScoreByRound[roundKey] || 0;
-    const level = score > 0 && highestScore > 0 ? Math.min(5, Math.max(1, Math.ceil((score / highestScore) * 5))) : 0;
-    return `<td class="knockout-score-cell knockout-score-level-${level}" title="${score} van ${roundMax} juist">${score}</td>`;
+    if (!score || !roundMax) {
+      return "";
+    }
+
+    const ratio = Math.max(0, Math.min(1, score / roundMax));
+    const lightness = Math.round(96 - ratio * 48);
+    const saturation = Math.round(42 + ratio * 34);
+    const hue = tone === "wrong" ? 4 : 138;
+    const textColor = ratio >= 0.55 ? "white" : "var(--ink)";
+    return ` style="background:hsl(${hue} ${saturation}% ${lightness}%);color:${textColor}"`;
   };
 
-  const summaryRows = summaryScores
-    .map(({ participant, scores }) => {
+  const renderScoreCell = (score, roundKey, tone) => {
+    const roundMax = roundMeta[roundKey]?.slots || 0;
+    const label = tone === "wrong" ? "onjuist" : "juist";
+    return `<td class="knockout-score-cell"${scoreCellStyle(score, roundKey, tone)} title="${score} van ${roundMax} ${label}">${score}</td>`;
+  };
+
+  const renderSummaryRows = (scoreKey, tone) => summaryScores
+    .map(({ participant, [scoreKey]: scores }) => {
       const cells = roundOrder
-        .map((roundKey) => renderScoreCell(scores[roundKey] || 0, roundKey))
+        .map((roundKey) => renderScoreCell(scores[roundKey] || 0, roundKey, tone))
         .join("");
 
       return `
@@ -511,10 +524,10 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
     })
     .join("");
 
-  const summary = `
+  const renderSummaryTable = ({ title, scoreKey, tone }) => `
     <section class="knockout-summary-section">
       <div class="section-head">
-        <h3>Juist voorspelde knock-outlanden</h3>
+        <h3>${title}</h3>
       </div>
       <table class="knockout-summary-table">
         <thead>
@@ -528,11 +541,22 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
           </tr>
         </thead>
         <tbody>
-          ${summaryRows}
+          ${renderSummaryRows(scoreKey, tone)}
         </tbody>
       </table>
     </section>
   `;
+
+  const correctSummary = renderSummaryTable({
+    title: "Juist voorspelde knock-outlanden",
+    scoreKey: "correctScores",
+    tone: "correct",
+  });
+  const wrongSummary = renderSummaryTable({
+    title: "Onjuist voorspelde knock-outlanden",
+    scoreKey: "wrongScores",
+    tone: "wrong",
+  });
 
   const sections = [...groupedRounds.values()]
     .map((round) => {
@@ -600,7 +624,7 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
     .filter(Boolean)
     .join("");
 
-  container.innerHTML = sections ? `${summary}${sections}` : '<p class="notice">Nog geen knock-outvoorspellingen.</p>';
+  container.innerHTML = sections ? `${correctSummary}${wrongSummary}${sections}` : '<p class="notice">Nog geen knock-outvoorspellingen.</p>';
 }
 
 function renderBonusOverview(bonusOverview, standings, unlocked) {

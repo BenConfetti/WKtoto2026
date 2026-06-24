@@ -5087,6 +5087,22 @@ function renderTeamWithFlag(team, label = team) {
   return window.teamFlags?.team(team, label) || label;
 }
 
+function canonicalTeamName(team) {
+  if (window.teamFlags?.canonicalTeamName) {
+    return window.teamFlags.canonicalTeamName(team);
+  }
+
+  const value = String(team || "").trim();
+  const comparable = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\uFFFD/g, "")
+    .replace(/[^a-z]/gi, "")
+    .toLocaleLowerCase("nl-NL");
+
+  return comparable === "curacao" || comparable === "curaao" ? "Curacao" : value;
+}
+
 function poolBasePath() {
   return `/pool/${getPoolSlug()}`;
 }
@@ -5187,21 +5203,29 @@ function getGroupStageMatches(matches) {
 }
 
 function getCountryOptions(matches) {
-  return [...new Set(getGroupStageMatches(matches).flatMap((match) => [match.homeTeam, match.awayTeam]))].sort(
+  return [...new Set(getGroupStageMatches(matches).flatMap((match) => [
+    canonicalTeamName(match.homeTeam),
+    canonicalTeamName(match.awayTeam),
+  ]))].sort(
     (left, right) => left.localeCompare(right, "nl"),
   );
 }
 
 function filterAvailableTeams(matches, allowedTeams) {
   const availableTeams = new Set(getCountryOptions(matches));
-  return allowedTeams.filter((team) => availableTeams.has(team) || availableTeams.has(HOST_TEAM_ALIASES[team]));
+  return allowedTeams.filter((team) => {
+    const canonicalTeam = canonicalTeamName(team);
+    const canonicalAlias = canonicalTeamName(HOST_TEAM_ALIASES[team]);
+    return availableTeams.has(canonicalTeam) || availableTeams.has(canonicalAlias);
+  });
 }
 
 function renderCountryOptions(options, selectedValue) {
+  const canonicalSelectedValue = canonicalTeamName(selectedValue);
   return options
     .map(
       (country) =>
-        `<option value="${country}" ${selectedValue === country ? "selected" : ""}>${country}</option>`,
+        `<option value="${country}" ${canonicalSelectedValue === country ? "selected" : ""}>${country}</option>`,
     )
     .join("");
 }

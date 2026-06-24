@@ -195,14 +195,30 @@ function calculateParticipantCompletion(participant) {
 function getCountryOptionsFromMatches(matches) {
   return [...new Set(matches
     .filter((match) => match.stage === "Groepsfase")
-    .flatMap((match) => [match.homeTeam, match.awayTeam]))].sort((left, right) =>
+    .flatMap((match) => [canonicalTeamName(match.homeTeam), canonicalTeamName(match.awayTeam)]))].sort((left, right) =>
     left.localeCompare(right, "nl"),
   );
 }
 
 function filterAvailableTeams(matches, allowedTeams) {
   const availableTeams = new Set(getCountryOptionsFromMatches(matches));
-  return allowedTeams.filter((team) => availableTeams.has(team) || availableTeams.has(HOST_TEAM_ALIASES[team]));
+  return allowedTeams.filter((team) => {
+    const canonicalTeam = canonicalTeamName(team);
+    const canonicalAlias = canonicalTeamName(HOST_TEAM_ALIASES[team]);
+    return availableTeams.has(canonicalTeam) || availableTeams.has(canonicalAlias);
+  });
+}
+
+function canonicalTeamName(team) {
+  const value = String(team || "").trim();
+  const comparable = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\uFFFD/g, "")
+    .replace(/[^a-z]/gi, "")
+    .toLocaleLowerCase("nl-NL");
+
+  return comparable === "curacao" || comparable === "curaao" ? "Curacao" : value;
 }
 
 function getPoolInviteLink(pool) {
@@ -241,8 +257,9 @@ function populateBonusResultSelect(id, countries, selectedValue) {
     return;
   }
 
+  const canonicalSelectedValue = canonicalTeamName(selectedValue);
   select.innerHTML = `<option value="">Kies een land</option>${countries
-    .map((country) => `<option value="${country}" ${selectedValue === country ? "selected" : ""}>${country}</option>`)
+    .map((country) => `<option value="${country}" ${canonicalSelectedValue === country ? "selected" : ""}>${country}</option>`)
     .join("")}`;
 }
 
@@ -252,7 +269,7 @@ function renderCheckboxList(containerId, options, selectedValues) {
     return;
   }
 
-  const selected = new Set(selectedValues || []);
+  const selected = new Set((selectedValues || []).map(canonicalTeamName));
   container.innerHTML = options
     .map(
       (option) => `
