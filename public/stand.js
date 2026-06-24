@@ -516,11 +516,10 @@ function renderKnockoutOverview(knockoutOverview, standings, unlocked) {
     }
 
     const ratio = range.max === range.min ? 1 : Math.max(0, Math.min(1, (score - range.min) / (range.max - range.min)));
-    const lightness = Math.round(96 - ratio * 48);
-    const saturation = Math.round(42 + ratio * 34);
+    const lightness = Math.round(88 - ratio * 20);
+    const saturation = Math.round(46 + ratio * 14);
     const hue = tone === "wrong" ? 4 : 138;
-    const textColor = ratio >= 0.55 ? "white" : "var(--ink)";
-    return ` style="background:hsl(${hue} ${saturation}% ${lightness}%);color:${textColor}"`;
+    return ` style="background:hsl(${hue} ${saturation}% ${lightness}%)"`;
   };
 
   const renderScoreCell = (score, roundKey, tone, scoreKey) => {
