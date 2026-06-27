@@ -486,14 +486,33 @@ function syncBonusResultInputs(rules) {
     hostCountries,
     bonusResults.bestHostTeamAnswers || [],
   );
+  renderCheckboxList("bonusWrongChampionTeamList", countries, bonusResults.championTeamWrongAnswers || []);
+  renderCheckboxList("bonusWrongMostGoalsTeamList", countries, bonusResults.mostGoalsTeamWrongAnswers || []);
+  renderCheckboxList("bonusWrongMostConcededTeamList", countries, bonusResults.mostConcededTeamWrongAnswers || []);
+  renderCheckboxList("bonusWrongBestAfricanTeamList", africanCountries, bonusResults.bestAfricanTeamWrongAnswers || []);
+  renderCheckboxList("bonusWrongBestAsianTeamList", asianCountries, bonusResults.bestAsianTeamWrongAnswers || []);
+  renderCheckboxList(
+    "bonusWrongBestCentralAmericanTeamList",
+    centralAmericanCountries,
+    bonusResults.bestCentralAmericanTeamWrongAnswers || [],
+  );
+  renderCheckboxList("bonusWrongBestHostTeamList", hostCountries, bonusResults.bestHostTeamWrongAnswers || []);
   const topScorerInput = document.querySelector("#bonusResultTopScorer");
   const topScorerNetherlandsInput = document.querySelector("#bonusResultTopScorerNetherlands");
+  const wrongTopScorerInput = document.querySelector("#bonusWrongTopScorer");
+  const wrongTopScorerNetherlandsInput = document.querySelector("#bonusWrongTopScorerNetherlands");
   const totalGoalsInput = document.querySelector("#bonusResultTotalGoals");
   if (topScorerInput) {
     topScorerInput.value = (bonusResults.topScorerAnswers || []).join("\n");
   }
   if (topScorerNetherlandsInput) {
     topScorerNetherlandsInput.value = (bonusResults.topScorerNetherlandsAnswers || []).join("\n");
+  }
+  if (wrongTopScorerInput) {
+    wrongTopScorerInput.value = (bonusResults.topScorerWrongAnswers || []).join("\n");
+  }
+  if (wrongTopScorerNetherlandsInput) {
+    wrongTopScorerNetherlandsInput.value = (bonusResults.topScorerNetherlandsWrongAnswers || []).join("\n");
   }
   if (totalGoalsInput) {
     totalGoalsInput.value = bonusResults.totalGoals ?? "";
@@ -710,8 +729,17 @@ function collectBonusResultsPayload() {
     bestAsianTeamAnswers: getCheckedValues("bonusResultBestAsianTeamList"),
     bestCentralAmericanTeamAnswers: getCheckedValues("bonusResultBestCentralAmericanTeamList"),
     bestHostTeamAnswers: getCheckedValues("bonusResultBestHostTeamList"),
+    championTeamWrongAnswers: getCheckedValues("bonusWrongChampionTeamList"),
+    mostGoalsTeamWrongAnswers: getCheckedValues("bonusWrongMostGoalsTeamList"),
+    mostConcededTeamWrongAnswers: getCheckedValues("bonusWrongMostConcededTeamList"),
+    bestAfricanTeamWrongAnswers: getCheckedValues("bonusWrongBestAfricanTeamList"),
+    bestAsianTeamWrongAnswers: getCheckedValues("bonusWrongBestAsianTeamList"),
+    bestCentralAmericanTeamWrongAnswers: getCheckedValues("bonusWrongBestCentralAmericanTeamList"),
+    bestHostTeamWrongAnswers: getCheckedValues("bonusWrongBestHostTeamList"),
     topScorerAnswers: document.querySelector("#bonusResultTopScorer")?.value || "",
     topScorerNetherlandsAnswers: document.querySelector("#bonusResultTopScorerNetherlands")?.value || "",
+    topScorerWrongAnswers: document.querySelector("#bonusWrongTopScorer")?.value || "",
+    topScorerNetherlandsWrongAnswers: document.querySelector("#bonusWrongTopScorerNetherlands")?.value || "",
     totalGoals:
       (document.querySelector("#bonusResultTotalGoals")?.value ?? "") === ""
         ? null
@@ -727,9 +755,9 @@ function collectLiveLeadersPayload() {
 }
 
 function setCheckedValues(containerId, values) {
-  const selected = new Set(values.filter(Boolean));
+  const selected = new Set(values.filter(Boolean).map(canonicalTeamName));
   document.querySelectorAll(`#${containerId} input[type="checkbox"]`).forEach((input) => {
-    input.checked = selected.has(input.value);
+    input.checked = selected.has(canonicalTeamName(input.value));
   });
 }
 

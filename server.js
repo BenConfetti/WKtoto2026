@@ -721,11 +721,20 @@ function sanitizeBonusResults(payload) {
       ? payload.bestHostTeamAnswers
       : payload?.bestHostTeamAnswers ?? payload?.bestHostTeam,
   );
+  const championTeamWrongAnswers = sanitizeTeamAnswerList(payload?.championTeamWrongAnswers);
+  const mostGoalsTeamWrongAnswers = sanitizeTeamAnswerList(payload?.mostGoalsTeamWrongAnswers);
+  const mostConcededTeamWrongAnswers = sanitizeTeamAnswerList(payload?.mostConcededTeamWrongAnswers);
+  const bestAfricanTeamWrongAnswers = sanitizeTeamAnswerList(payload?.bestAfricanTeamWrongAnswers);
+  const bestAsianTeamWrongAnswers = sanitizeTeamAnswerList(payload?.bestAsianTeamWrongAnswers);
+  const bestCentralAmericanTeamWrongAnswers = sanitizeTeamAnswerList(payload?.bestCentralAmericanTeamWrongAnswers);
+  const bestHostTeamWrongAnswers = sanitizeTeamAnswerList(payload?.bestHostTeamWrongAnswers);
   const topScorerNetherlandsAnswers = sanitizeAnswerList(
     payload?.topScorerNetherlandsAnswers && Array.isArray(payload.topScorerNetherlandsAnswers)
       ? payload.topScorerNetherlandsAnswers
       : payload?.topScorerNetherlandsAnswers ?? payload?.topScorerNetherlands,
   );
+  const topScorerWrongAnswers = sanitizeAnswerList(payload?.topScorerWrongAnswers);
+  const topScorerNetherlandsWrongAnswers = sanitizeAnswerList(payload?.topScorerNetherlandsWrongAnswers);
 
   return {
     championTeam: canonicalTeamName(payload?.championTeam),
@@ -739,10 +748,19 @@ function sanitizeBonusResults(payload) {
     bestCentralAmericanTeamAnswers,
     bestHostTeam: bestHostTeamAnswers[0] || "",
     bestHostTeamAnswers,
+    championTeamWrongAnswers,
+    mostGoalsTeamWrongAnswers,
+    mostConcededTeamWrongAnswers,
+    bestAfricanTeamWrongAnswers,
+    bestAsianTeamWrongAnswers,
+    bestCentralAmericanTeamWrongAnswers,
+    bestHostTeamWrongAnswers,
     topScorer: topScorerAnswers[0] || "",
     topScorerAnswers,
+    topScorerWrongAnswers,
     topScorerNetherlands: topScorerNetherlandsAnswers[0] || "",
     topScorerNetherlandsAnswers,
+    topScorerNetherlandsWrongAnswers,
     totalGoals:
       payload?.totalGoals === "" || payload?.totalGoals === null || payload?.totalGoals === undefined
         ? null
@@ -1115,11 +1133,18 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
     return "empty";
   }
   const normalizedPrediction = canonicalTeamName(prediction);
+  const teamWrongAnswers = (key) => sanitizeTeamAnswerList(bonusResults?.[`${key}WrongAnswers`]);
+  const freeTextWrongAnswers = (key) =>
+    sanitizeAnswerList(bonusResults?.[`${key}WrongAnswers`]).map(normalizeFreeText);
 
   if (questionKey === "championTeam") {
     const championTeam = canonicalTeamName(bonusResults.championTeam);
     if (championTeam && normalizedPrediction === championTeam) {
       return "correct";
+    }
+
+    if (teamWrongAnswers("championTeam").includes(normalizedPrediction)) {
+      return "wrong";
     }
 
     if (championTeam && normalizedPrediction !== championTeam) {
@@ -1130,6 +1155,10 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "mostGoalsTeam") {
+    if (teamWrongAnswers("mostGoalsTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
+
     if (!bonusResults.championTeam) {
       return "pending";
     }
@@ -1142,6 +1171,10 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "mostConcededTeam") {
+    if (teamWrongAnswers("mostConcededTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
+
     if (!bonusResults.championTeam) {
       return "pending";
     }
@@ -1160,6 +1193,9 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
+    if (teamWrongAnswers("bestAfricanTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
     return "pending";
   }
 
@@ -1169,6 +1205,9 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
     );
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
+    }
+    if (teamWrongAnswers("bestAsianTeam").includes(normalizedPrediction)) {
+      return "wrong";
     }
     return "pending";
   }
@@ -1182,6 +1221,9 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
+    if (teamWrongAnswers("bestCentralAmericanTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
     return "pending";
   }
 
@@ -1192,10 +1234,17 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
+    if (teamWrongAnswers("bestHostTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
     return "pending";
   }
 
   if (questionKey === "topScorer") {
+    if (freeTextWrongAnswers("topScorer").includes(normalizeFreeText(prediction))) {
+      return "wrong";
+    }
+
     if (!bonusResults.championTeam) {
       return "pending";
     }
@@ -1210,6 +1259,10 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "topScorerNetherlands") {
+    if (freeTextWrongAnswers("topScorerNetherlands").includes(normalizeFreeText(prediction))) {
+      return "wrong";
+    }
+
     const dutchTopScorerUnlocked =
       Boolean(bonusResults.championTeam) || sanitizeTeamList(rules.eliminatedTeams || []).includes("Nederland");
     if (!dutchTopScorerUnlocked) {

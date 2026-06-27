@@ -1592,6 +1592,26 @@ th {
   gap: 12px;
 }
 
+.bonus-answer-stage {
+  border: 1px solid rgba(39, 49, 182, 0.12);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.bonus-answer-stage h3 {
+  margin-bottom: 2px;
+}
+
+.bonus-answer-stage-correct {
+  border-color: rgba(43, 110, 75, 0.24);
+  background: rgba(43, 110, 75, 0.08);
+}
+
+.bonus-answer-stage-wrong {
+  border-color: rgba(178, 54, 44, 0.26);
+  background: rgba(178, 54, 44, 0.08);
+}
+
 .admin-stage-list {
   display: grid;
   gap: 12px;

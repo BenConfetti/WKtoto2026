@@ -191,7 +191,7 @@
         </div>
         <p class="notice">Vul hier de uitslagen in, kies per eindronde welke landen echt doorgaan en leg ook de juiste antwoorden voor de open vragen vast.</p>
         <div class="status-banner muted" id="results-status-banner">Nog geen wijzigingen opgeslagen.</div>
-        <section class="admin-stage">
+        <section class="admin-stage bonus-answer-stage bonus-answer-stage-correct">
           <h3>Juiste antwoorden bonusvragen</h3>
           <div class="rule-grid">
             <label>
@@ -236,17 +236,58 @@
             </label>
           </div>
         </section>
+        <section class="admin-stage bonus-answer-stage bonus-answer-stage-wrong">
+          <h3>Onjuiste antwoorden bonusvragen</h3>
+          <div class="rule-grid">
+            <label>
+              Wereldkampioen
+              <div class="checkbox-list" id="bonusWrongChampionTeamList"></div>
+            </label>
+            <label>
+              Meeste doelpunten
+              <div class="checkbox-list" id="bonusWrongMostGoalsTeamList"></div>
+            </label>
+            <label>
+              Meeste tegendoelpunten
+              <div class="checkbox-list" id="bonusWrongMostConcededTeamList"></div>
+            </label>
+            <label>
+              Afrikaans land komt het verst
+              <div class="checkbox-list" id="bonusWrongBestAfricanTeamList"></div>
+            </label>
+            <label>
+              Aziatisch land komt het verst
+              <div class="checkbox-list" id="bonusWrongBestAsianTeamList"></div>
+            </label>
+            <label>
+              Midden-Amerikaans land komt het verst
+              <div class="checkbox-list" id="bonusWrongBestCentralAmericanTeamList"></div>
+            </label>
+            <label>
+              Gastland komt het verst
+              <div class="checkbox-list" id="bonusWrongBestHostTeamList"></div>
+            </label>
+            <label>
+              Topscorer
+              <textarea id="bonusWrongTopScorer" rows="4" placeholder="Zet elke onjuiste variant op een nieuwe regel"></textarea>
+            </label>
+            <label>
+              Topscorer voor Nederland
+              <textarea id="bonusWrongTopScorerNetherlands" rows="4" placeholder="Zet elke onjuiste variant op een nieuwe regel"></textarea>
+            </label>
+          </div>
+        </section>
         <div class="admin-match-list" id="admin-match-list"></div>
         <section class="admin-stage">
           <h3>Werkelijke landen per eindronde</h3>
           <div class="round-grid" id="admin-knockout-results"></div>
         </section>
-        <section class="admin-stage">
+        <section class="admin-stage bonus-answer-stage bonus-answer-stage-wrong">
           <h3>Uitgeschakelde landen</h3>
           <p class="notice">Vink hier landen aan die niet meer in het toernooi zitten. Daarmee kunnen foutieve knock-outkeuzes en de vraag over de wereldkampioen alvast rood worden gemarkeerd.</p>
           <div class="checkbox-list" id="admin-eliminated-teams"></div>
         </section>
-        <section class="admin-stage">
+        <section class="admin-stage bonus-answer-stage bonus-answer-stage-correct">
           <h3>Gekwalificeerd voor tweede ronde</h3>
           <p class="notice">Vink landen aan die zeker in de tweede ronde staan, ook als hun exacte tweede-rondewedstrijd nog niet bekend is.</p>
           <div class="checkbox-list" id="admin-qualified-second-round-teams"></div>
