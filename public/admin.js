@@ -1007,6 +1007,20 @@ function computeAutomaticKnockoutState() {
 
   const championTeam =
     winnerForEntry(finalEntry);
+
+  function loserForEntry(entry, winner) {
+    if (!entry || !winner) {
+      return "";
+    }
+    if (entry.homeTeam && entry.homeTeam !== winner) {
+      return entry.homeTeam;
+    }
+    if (entry.awayTeam && entry.awayTeam !== winner) {
+      return entry.awayTeam;
+    }
+    return "";
+  }
+
   for (let index = 0; index < rounds.length - 1; index += 1) {
     const currentRound = rounds[index];
     const nextRound = rounds[index + 1];
@@ -1024,7 +1038,14 @@ function computeAutomaticKnockoutState() {
     }
   }
   const eliminatedTeams = new Set(getCheckedValues("admin-eliminated-teams"));
-  const secondRoundTeams = new Set([...(roundValues.secondRound || []), ...qualifiedSecondRoundTeams]);
+  knockoutEntries.forEach((entry) => {
+    const winner = winnerForEntry(entry);
+    const loser = loserForEntry(entry, winner);
+    if (loser) {
+      eliminatedTeams.add(loser);
+    }
+  });
+  const secondRoundTeams = new Set([...(roundValues.secondRound || []), ...qualifiedSecondRoundTeams].filter(Boolean));
   if (secondRoundTeams.size >= 32) {
     countries.forEach((country) => {
       if (!secondRoundTeams.has(country)) {
@@ -1033,39 +1054,15 @@ function computeAutomaticKnockoutState() {
     });
   }
 
-  for (let index = 0; index < rounds.length - 1; index += 1) {
-    const currentTeams = new Set(roundValues[rounds[index].key] || []);
-    const nextTeams = new Set(roundValues[rounds[index + 1].key] || []);
-    if (!nextTeams.size) {
-      continue;
-    }
-    currentTeams.forEach((team) => {
-      if (team && !nextTeams.has(team)) {
-        eliminatedTeams.add(team);
-      }
-    });
-  }
-
-  if (championTeam) {
-    (roundValues.final || []).forEach((team) => {
-      if (team && team !== championTeam) {
-        eliminatedTeams.add(team);
-      }
-    });
-  }
-
-  const latestRound = [...rounds].reverse().find((round) => (roundValues[round.key] || []).length);
-  const latestRoundTeams = new Set(latestRound ? roundValues[latestRound.key] || [] : qualifiedSecondRoundTeams);
-  if (!latestRound || latestRound.key === "secondRound") {
-    qualifiedSecondRoundTeams.forEach((team) => latestRoundTeams.add(team));
-  }
   const reachedRank = new Map(countries.map((country) => [country, 0]));
   qualifiedSecondRoundTeams.forEach((team) => {
     reachedRank.set(team, Math.max(reachedRank.get(team) || 0, 1));
   });
   rounds.forEach((round, index) => {
     (roundValues[round.key] || []).forEach((team) => {
-      reachedRank.set(team, Math.max(reachedRank.get(team) || 0, index + 1));
+      if (team) {
+        reachedRank.set(team, Math.max(reachedRank.get(team) || 0, index + 1));
+      }
     });
   });
   if (championTeam) {
@@ -1074,7 +1071,7 @@ function computeAutomaticKnockoutState() {
 
   function bestCategoryTeams(teamList) {
     const availableTeams = filterAvailableTeams(adminMatches, teamList);
-    const activeTeams = availableTeams.filter((team) => latestRoundTeams.has(team) && !championTeam);
+    const activeTeams = availableTeams.filter((team) => !eliminatedTeams.has(team) && team !== championTeam);
     if (activeTeams.length) {
       return [];
     }
