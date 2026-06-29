@@ -584,6 +584,42 @@ const knockoutRoundDefinitions = [
   { key: "final", label: "Finale", shortLabel: "F", slots: 2 },
 ];
 
+const AFRICAN_TEAMS = [
+  "Algerije",
+  "DR Congo",
+  "Egypte",
+  "Ghana",
+  "Ivoorkust",
+  "Kaapverdie",
+  "Marokko",
+  "Senegal",
+  "TunesiÃ«",
+  "Zuid-Afrika",
+];
+
+const ASIAN_TEAMS = [
+  "Irak",
+  "Iran",
+  "Japan",
+  "JordaniÃ«",
+  "Oezbekistan",
+  "Qatar",
+  "Saoedi-ArabiÃ«",
+  "Zuid-Korea",
+];
+
+const CENTRAL_AMERICAN_TEAMS = [
+  "Curacao",
+  "HaÃ¯ti",
+  "Panama",
+];
+
+const HOST_TEAMS = [
+  "Canada",
+  "Verenigde Staten",
+  "Mexico",
+];
+
 function getKnockoutMatchesByRoundKey(matches, roundKey) {
   const round = knockoutRoundDefinitions.find((entry) => entry.key === roundKey);
   if (!round) {
@@ -591,6 +627,107 @@ function getKnockoutMatchesByRoundKey(matches, roundKey) {
   }
 
   return matches.filter((match) => match.stage === round.label);
+}
+
+function getCountryOptionsFromMatches(matches) {
+  const slotPattern = /^(?:[A-L][1-4]|[1-8][A-L]|W\d+|L\d+)$/i;
+  return uniqueNormalized(
+    matches
+      .filter((match) => match.stage === "Groepsfase")
+      .flatMap((match) => [match.homeTeam, match.awayTeam])
+      .filter((team) => !slotPattern.test(String(team || "").trim())),
+  );
+}
+
+function getKnockoutWinner(match, homeTeam, awayTeam) {
+  if (!match || match.status !== "finished" || !homeTeam || !awayTeam || !hasCompleteScore(match)) {
+    return "";
+  }
+
+  if (match.homeScore > match.awayScore) {
+    return homeTeam;
+  }
+  if (match.awayScore > match.homeScore) {
+    return awayTeam;
+  }
+  return canonicalTeamName(match.penaltyWinnerTeam);
+}
+
+function deriveKnockoutProgress(matches, knockoutResults, rules = {}) {
+  const actualByRound = Object.fromEntries(knockoutRoundDefinitions.map((round) => [round.key, []]));
+  const eliminatedTeams = new Set();
+  let championTeam = "";
+  const addActual = (roundKey, team) => {
+    const normalizedTeam = canonicalTeamName(team);
+    if (normalizedTeam && !actualByRound[roundKey].includes(normalizedTeam)) {
+      actualByRound[roundKey].push(normalizedTeam);
+    }
+  };
+
+  for (const team of sanitizeQualifiedSecondRoundTeams(rules.qualifiedSecondRoundTeams || [])) {
+    addActual("secondRound", team);
+  }
+  for (const team of uniqueNormalized(knockoutResults.secondRound || [])) {
+    addActual("secondRound", team);
+  }
+
+  knockoutRoundDefinitions.forEach((round, roundIndex) => {
+    const nextRound = knockoutRoundDefinitions[roundIndex + 1];
+    const roundMatches = getKnockoutMatchesByRoundKey(matches, round.key);
+    const roundValues = normalizeSlotValues(knockoutResults[round.key] || []);
+    roundMatches.forEach((match, matchIndex) => {
+      const homeTeam = roundValues[matchIndex * 2] || "";
+      const awayTeam = roundValues[matchIndex * 2 + 1] || "";
+      const winner = getKnockoutWinner(match, homeTeam, awayTeam);
+      if (!winner) {
+        return;
+      }
+
+      if (nextRound) {
+        addActual(nextRound.key, winner);
+      } else {
+        championTeam = winner;
+      }
+      const loser = homeTeam === winner ? awayTeam : homeTeam;
+      if (loser) {
+        eliminatedTeams.add(loser);
+      }
+    });
+  });
+
+  if (actualByRound.secondRound.length >= 32) {
+    const secondRoundTeams = new Set(actualByRound.secondRound);
+    getCountryOptionsFromMatches(matches).forEach((country) => {
+      if (!secondRoundTeams.has(country)) {
+        eliminatedTeams.add(country);
+      }
+    });
+  }
+
+  return {
+    actualByRound,
+    eliminatedTeams,
+    championTeam,
+  };
+}
+
+function getBonusQuestionLocks(matches, knockoutProgress) {
+  const countries = new Set(getCountryOptionsFromMatches(matches));
+  const availableTeams = (teamList) => uniqueNormalized(teamList).filter((team) => countries.has(team));
+  const isResolved = (teamList) => {
+    const teams = availableTeams(teamList);
+    if (!teams.length) {
+      return false;
+    }
+    return teams.every((team) => knockoutProgress.eliminatedTeams.has(team) || team === knockoutProgress.championTeam);
+  };
+
+  return {
+    bestAfricanTeam: isResolved(AFRICAN_TEAMS),
+    bestAsianTeam: isResolved(ASIAN_TEAMS),
+    bestCentralAmericanTeam: isResolved(CENTRAL_AMERICAN_TEAMS),
+    bestHostTeam: isResolved(HOST_TEAMS),
+  };
 }
 
 function sanitizeKnockoutResults(payload, previousResults = {}) {
@@ -788,7 +925,7 @@ function computeTotalGoalsPoints(predictedTotalGoals, actualTotalGoals, maxPoint
   return Math.max(0, Number(maxPoints) - Math.abs(Number(predictedTotalGoals) - Number(actualTotalGoals)));
 }
 
-function computeBonusPoints(bonusPredictions, bonusResults, rules) {
+function computeBonusPoints(bonusPredictions, bonusResults, rules, bonusQuestionLocks = {}) {
   let total = 0;
   const finalOpenQuestionsUnlocked = Boolean(bonusResults.championTeam);
   const championPrediction = canonicalTeamName(bonusPredictions.championTeam);
@@ -822,14 +959,22 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   const acceptedAfricanTeams = sanitizeAnswerList(
     bonusResults.bestAfricanTeamAnswers?.length ? bonusResults.bestAfricanTeamAnswers : bonusResults.bestAfricanTeam,
   );
-  if (bestAfricanPrediction && acceptedAfricanTeams.map(canonicalTeamName).includes(bestAfricanPrediction)) {
+  if (
+    bonusQuestionLocks.bestAfricanTeam &&
+    bestAfricanPrediction &&
+    acceptedAfricanTeams.map(canonicalTeamName).includes(bestAfricanPrediction)
+  ) {
     total += rules.bestAfricanTeamPoints;
   }
 
   const acceptedAsianTeams = sanitizeAnswerList(
     bonusResults.bestAsianTeamAnswers?.length ? bonusResults.bestAsianTeamAnswers : bonusResults.bestAsianTeam,
   );
-  if (bestAsianPrediction && acceptedAsianTeams.map(canonicalTeamName).includes(bestAsianPrediction)) {
+  if (
+    bonusQuestionLocks.bestAsianTeam &&
+    bestAsianPrediction &&
+    acceptedAsianTeams.map(canonicalTeamName).includes(bestAsianPrediction)
+  ) {
     total += rules.bestAsianTeamPoints;
   }
 
@@ -840,6 +985,7 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   );
   if (
     bestCentralAmericanPrediction &&
+    bonusQuestionLocks.bestCentralAmericanTeam &&
     acceptedCentralAmericanTeams.map(canonicalTeamName).includes(bestCentralAmericanPrediction)
   ) {
     total += rules.bestCentralAmericanTeamPoints;
@@ -848,7 +994,11 @@ function computeBonusPoints(bonusPredictions, bonusResults, rules) {
   const acceptedHostTeams = sanitizeAnswerList(
     bonusResults.bestHostTeamAnswers?.length ? bonusResults.bestHostTeamAnswers : bonusResults.bestHostTeam,
   );
-  if (bestHostPrediction && acceptedHostTeams.map(canonicalTeamName).includes(bestHostPrediction)) {
+  if (
+    bonusQuestionLocks.bestHostTeam &&
+    bestHostPrediction &&
+    acceptedHostTeams.map(canonicalTeamName).includes(bestHostPrediction)
+  ) {
     total += rules.bestHostTeamPoints;
   }
 
@@ -1106,29 +1256,30 @@ function buildEffectiveRules(pool, globalRules) {
 }
 
 function getKnockoutSelectionStatus(predictedTeam, actualTeams, eliminatedTeams, expectedCount) {
-  if (!predictedTeam) {
+  const normalizedPrediction = canonicalTeamName(predictedTeam);
+  if (!normalizedPrediction) {
     return "empty";
   }
 
   const actualSet = new Set(uniqueNormalized(actualTeams));
   const isRoundComplete = Number(expectedCount || 0) > 0 && actualSet.size >= expectedCount;
 
-  if (actualSet.has(predictedTeam)) {
+  if (actualSet.has(normalizedPrediction)) {
     return "correct";
   }
 
-  if (eliminatedTeams.has(predictedTeam)) {
+  if (eliminatedTeams.has(normalizedPrediction)) {
     return "wrong";
   }
 
-  if (isRoundComplete && !actualSet.has(predictedTeam)) {
+  if (isRoundComplete && !actualSet.has(normalizedPrediction)) {
     return "wrong";
   }
 
   return "pending";
 }
 
-function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedTeams, rules = {}) {
+function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedTeams, rules = {}, bonusQuestionLocks = {}) {
   if (prediction === "" || prediction === null || prediction === undefined) {
     return "empty";
   }
@@ -1187,32 +1338,44 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
   }
 
   if (questionKey === "bestAfricanTeam") {
+    if (teamWrongAnswers("bestAfricanTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
+    if (!bonusQuestionLocks.bestAfricanTeam) {
+      return "pending";
+    }
     const accepted = sanitizeAnswerList(
       bonusResults.bestAfricanTeamAnswers?.length ? bonusResults.bestAfricanTeamAnswers : bonusResults.bestAfricanTeam,
     );
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
-    if (teamWrongAnswers("bestAfricanTeam").includes(normalizedPrediction)) {
-      return "wrong";
-    }
     return "pending";
   }
 
   if (questionKey === "bestAsianTeam") {
+    if (teamWrongAnswers("bestAsianTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
+    if (!bonusQuestionLocks.bestAsianTeam) {
+      return "pending";
+    }
     const accepted = sanitizeAnswerList(
       bonusResults.bestAsianTeamAnswers?.length ? bonusResults.bestAsianTeamAnswers : bonusResults.bestAsianTeam,
     );
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
-    if (teamWrongAnswers("bestAsianTeam").includes(normalizedPrediction)) {
-      return "wrong";
-    }
     return "pending";
   }
 
   if (questionKey === "bestCentralAmericanTeam") {
+    if (teamWrongAnswers("bestCentralAmericanTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
+    if (!bonusQuestionLocks.bestCentralAmericanTeam) {
+      return "pending";
+    }
     const accepted = sanitizeAnswerList(
       bonusResults.bestCentralAmericanTeamAnswers?.length
         ? bonusResults.bestCentralAmericanTeamAnswers
@@ -1221,21 +1384,21 @@ function getBonusAnswerStatus(questionKey, prediction, bonusResults, eliminatedT
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
     }
-    if (teamWrongAnswers("bestCentralAmericanTeam").includes(normalizedPrediction)) {
-      return "wrong";
-    }
     return "pending";
   }
 
   if (questionKey === "bestHostTeam") {
+    if (teamWrongAnswers("bestHostTeam").includes(normalizedPrediction)) {
+      return "wrong";
+    }
+    if (!bonusQuestionLocks.bestHostTeam) {
+      return "pending";
+    }
     const accepted = sanitizeAnswerList(
       bonusResults.bestHostTeamAnswers?.length ? bonusResults.bestHostTeamAnswers : bonusResults.bestHostTeam,
     );
     if (accepted.length) {
       return accepted.map(canonicalTeamName).includes(normalizedPrediction) ? "correct" : "wrong";
-    }
-    if (teamWrongAnswers("bestHostTeam").includes(normalizedPrediction)) {
-      return "wrong";
     }
     return "pending";
   }
@@ -1785,6 +1948,8 @@ async function handleStandings(req, res, pool) {
   const groupStageStandings = buildActualGroupStageStandings(groupStageMatches);
   const knockoutResults = sanitizeKnockoutResults(effectiveRules.knockoutResults);
   const eliminatedTeams = new Set(effectiveRules.eliminatedTeams || []);
+  const knockoutProgress = deriveKnockoutProgress(matches, knockoutResults, effectiveRules);
+  const bonusQuestionLocks = getBonusQuestionLocks(matches, knockoutProgress);
   const finishedMatches = matches
     .filter((match) => match.status === "finished" && hasCompleteScore(match))
     .sort((left, right) => {
@@ -1856,13 +2021,14 @@ async function handleStandings(req, res, pool) {
       }, 0);
         const knockoutPoints = computeKnockoutPoints(
           participant.knockoutPredictions,
-          knockoutResults,
+          knockoutProgress.actualByRound,
           effectiveRules,
         );
         const bonusPoints = computeBonusPoints(
           participant.bonusPredictions || {},
           effectiveRules.bonusResults || {},
           effectiveRules,
+          bonusQuestionLocks,
         );
 
         return {
@@ -1924,8 +2090,8 @@ async function handleStandings(req, res, pool) {
         const values = participant.knockoutPredictions?.[round.key] || [];
         const actualValues =
           round.key === "secondRound"
-            ? uniqueNormalized([...(knockoutResults[round.key] || []), ...(effectiveRules.qualifiedSecondRoundTeams || [])])
-            : knockoutResults[round.key] || [];
+            ? knockoutProgress.actualByRound.secondRound
+            : knockoutProgress.actualByRound[round.key] || [];
         const homePrediction = values[matchIndex * 2] || "";
         const awayPrediction = values[matchIndex * 2 + 1] || "";
         return {
@@ -1934,11 +2100,21 @@ async function handleStandings(req, res, pool) {
           selections: [
             {
               team: homePrediction,
-              status: getKnockoutSelectionStatus(homePrediction, actualValues, eliminatedTeams, round.slots),
+              status: getKnockoutSelectionStatus(
+                homePrediction,
+                actualValues,
+                knockoutProgress.eliminatedTeams,
+                round.slots,
+              ),
             },
             {
               team: awayPrediction,
-              status: getKnockoutSelectionStatus(awayPrediction, actualValues, eliminatedTeams, round.slots),
+              status: getKnockoutSelectionStatus(
+                awayPrediction,
+                actualValues,
+                knockoutProgress.eliminatedTeams,
+                round.slots,
+              ),
             },
           ],
         };
@@ -1960,6 +2136,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         mostGoalsTeam: {
@@ -1970,6 +2147,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         mostConcededTeam: {
@@ -1980,6 +2158,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         bestAfricanTeam: {
@@ -1990,6 +2169,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         bestAsianTeam: {
@@ -2000,6 +2180,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         bestCentralAmericanTeam: {
@@ -2010,6 +2191,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         bestHostTeam: {
@@ -2020,6 +2202,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         topScorer: {
@@ -2030,6 +2213,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         topScorerNetherlands: {
@@ -2040,6 +2224,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
         totalGoals: {
@@ -2057,6 +2242,7 @@ async function handleStandings(req, res, pool) {
             effectiveRules.bonusResults || {},
             eliminatedTeams,
             effectiveRules,
+            bonusQuestionLocks,
           ),
         },
       },
