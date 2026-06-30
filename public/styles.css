@@ -1095,6 +1095,21 @@ th {
   padding: 4px 3px !important;
 }
 
+.matrix-knockout-teams {
+  padding: 4px 3px !important;
+  white-space: normal;
+}
+
+.knockout-team-chip {
+  display: inline-block;
+  min-width: 2.35rem;
+  margin: 1px;
+  padding: 2px 3px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  line-height: 1.05;
+}
+
 .knockout-pick {
   display: block;
   padding: 2px 3px;

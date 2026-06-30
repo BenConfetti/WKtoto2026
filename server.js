@@ -326,6 +326,9 @@ function canonicalTeamName(value) {
   if (comparable === "curacao" || comparable === "curaao") {
     return "Curacao";
   }
+  if (["australie", "australia", "australi"].includes(comparable)) {
+    return "Australië";
+  }
 
   return trimmed;
 }
@@ -576,12 +579,18 @@ function buildActualGroupStageStandings(groupStageMatches) {
   };
 }
 
-const knockoutRoundDefinitions = [
+const scoringKnockoutRoundDefinitions = [
   { key: "secondRound", label: "Tweede ronde", shortLabel: "2R", slots: 32 },
   { key: "thirdRound", label: "Derde ronde", shortLabel: "3R", slots: 16 },
   { key: "quarterFinal", label: "Kwartfinale", shortLabel: "KF", slots: 8 },
   { key: "semiFinal", label: "Halve finale", shortLabel: "HF", slots: 4 },
   { key: "final", label: "Finale", shortLabel: "F", slots: 2 },
+];
+
+const knockoutRoundDefinitions = [
+  ...scoringKnockoutRoundDefinitions.slice(0, 4),
+  { key: "thirdPlace", label: "Troostfinale", displayLabel: "Kleine finale", shortLabel: "KF3", slots: 2 },
+  scoringKnockoutRoundDefinitions[4],
 ];
 
 const AFRICAN_TEAMS = [
@@ -629,6 +638,95 @@ function getKnockoutMatchesByRoundKey(matches, roundKey) {
   return matches.filter((match) => match.stage === round.label);
 }
 
+function getKnockoutRoundByStage(stage) {
+  return knockoutRoundDefinitions.find((round) => round.label === stage) || null;
+}
+
+function getScoringKnockoutRoundByStage(stage) {
+  return scoringKnockoutRoundDefinitions.find((round) => round.label === stage) || null;
+}
+
+function getNextScoringRoundKey(roundKey) {
+  const index = scoringKnockoutRoundDefinitions.findIndex((round) => round.key === roundKey);
+  return index >= 0 ? scoringKnockoutRoundDefinitions[index + 1]?.key || "" : "";
+}
+
+function getKnockoutRoundValues(knockoutResults, roundKey) {
+  return normalizeSlotValues(knockoutResults?.[roundKey] || []);
+}
+
+function getKnockoutMatchTeams(matches, knockoutResults, match) {
+  const round = getKnockoutRoundByStage(match?.stage);
+  if (!round) {
+    return {
+      homeTeam: canonicalTeamName(match?.homeTeam),
+      awayTeam: canonicalTeamName(match?.awayTeam),
+    };
+  }
+
+  const roundMatches = getKnockoutMatchesByRoundKey(matches, round.key);
+  const matchIndex = roundMatches.findIndex((entry) => entry.id === match.id);
+  const values = getKnockoutRoundValues(knockoutResults, round.key);
+  return {
+    homeTeam: values[matchIndex * 2] || "",
+    awayTeam: values[matchIndex * 2 + 1] || "",
+  };
+}
+
+function getPublicMatch(match, matches, knockoutResults) {
+  const round = getKnockoutRoundByStage(match?.stage);
+  const teams = round ? getKnockoutMatchTeams(matches, knockoutResults, match) : {
+    homeTeam: canonicalTeamName(match?.homeTeam),
+    awayTeam: canonicalTeamName(match?.awayTeam),
+  };
+
+  return {
+    ...match,
+    roundKey: round?.key || "",
+    roundLabel: round?.displayLabel || round?.label || match?.stage || "",
+    isKnockout: Boolean(round),
+    displayHomeTeam: teams.homeTeam,
+    displayAwayTeam: teams.awayTeam,
+  };
+}
+
+function teamIsPredictedInRound(participant, roundKey, team) {
+  const normalizedTeam = canonicalTeamName(team);
+  if (!roundKey || !normalizedTeam) {
+    return false;
+  }
+
+  return uniqueNormalized(participant.knockoutPredictions?.[roundKey] || []).includes(normalizedTeam);
+}
+
+function getParticipantKnockoutWinnerStatus(participant, roundKey, winnerTeam) {
+  const normalizedWinner = canonicalTeamName(winnerTeam);
+  if (!normalizedWinner) {
+    return "empty";
+  }
+
+  if (roundKey === "final") {
+    return canonicalTeamName(participant.bonusPredictions?.championTeam) === normalizedWinner ? "correct" : "wrong";
+  }
+
+  const nextRoundKey = getNextScoringRoundKey(roundKey);
+  if (!nextRoundKey) {
+    return "pending";
+  }
+
+  return teamIsPredictedInRound(participant, nextRoundKey, normalizedWinner) ? "correct" : "wrong";
+}
+
+function getParticipantKnockoutCurrentStatus(participant, roundKey, team) {
+  if (!canonicalTeamName(team)) {
+    return "empty";
+  }
+  if (roundKey === "thirdPlace") {
+    return "pending";
+  }
+  return teamIsPredictedInRound(participant, roundKey, team) ? "correct" : "wrong";
+}
+
 function getCountryOptionsFromMatches(matches) {
   const slotPattern = /^(?:[A-L][1-4]|[1-8][A-L]|W\d+|L\d+)$/i;
   return uniqueNormalized(
@@ -654,7 +752,7 @@ function getKnockoutWinner(match, homeTeam, awayTeam) {
 }
 
 function deriveKnockoutProgress(matches, knockoutResults, rules = {}) {
-  const actualByRound = Object.fromEntries(knockoutRoundDefinitions.map((round) => [round.key, []]));
+  const actualByRound = Object.fromEntries(scoringKnockoutRoundDefinitions.map((round) => [round.key, []]));
   const eliminatedTeams = new Set();
   let championTeam = "";
   const addActual = (roundKey, team) => {
@@ -671,8 +769,8 @@ function deriveKnockoutProgress(matches, knockoutResults, rules = {}) {
     addActual("secondRound", team);
   }
 
-  knockoutRoundDefinitions.forEach((round, roundIndex) => {
-    const nextRound = knockoutRoundDefinitions[roundIndex + 1];
+  scoringKnockoutRoundDefinitions.forEach((round, roundIndex) => {
+    const nextRound = scoringKnockoutRoundDefinitions[roundIndex + 1];
     const roundMatches = getKnockoutMatchesByRoundKey(matches, round.key);
     const roundValues = normalizeSlotValues(knockoutResults[round.key] || []);
     roundMatches.forEach((match, matchIndex) => {
@@ -731,7 +829,7 @@ function getBonusQuestionLocks(matches, knockoutProgress) {
 }
 
 function sanitizeKnockoutResults(payload, previousResults = {}) {
-  const rounds = ["secondRound", "thirdRound", "quarterFinal", "semiFinal", "final"];
+  const rounds = ["secondRound", "thirdRound", "quarterFinal", "semiFinal", "thirdPlace", "final"];
   const result = {};
 
   for (const round of rounds) {
@@ -1956,11 +2054,9 @@ async function handleStandings(req, res, pool) {
       const rightUpdated = new Date(right.updatedAt || right.kickoffAt).getTime();
       return rightUpdated - leftUpdated;
     });
-  const lastUpdatedMatch = finishedMatches[0] || null;
-  const recentMatches = finishedMatches
-    .filter((match) => groupStageMatchById.has(match.id))
-    .slice(0, 5);
-  const upcomingMatches = groupStageMatches
+  const lastUpdatedMatch = finishedMatches[0] ? getPublicMatch(finishedMatches[0], matches, knockoutResults) : null;
+  const recentMatches = finishedMatches.slice(0, 5);
+  const upcomingMatches = matches
     .filter((match) => !hasCompleteScore(match))
     .sort((left, right) => new Date(left.kickoffAt).getTime() - new Date(right.kickoffAt).getTime())
     .slice(0, 5);
@@ -1968,8 +2064,12 @@ async function handleStandings(req, res, pool) {
   const teamStats = new Map();
 
   for (const match of finishedWithScores) {
-    const homeTeam = canonicalTeamName(match.homeTeam);
-    const awayTeam = canonicalTeamName(match.awayTeam);
+    const publicMatch = getPublicMatch(match, matches, knockoutResults);
+    const homeTeam = canonicalTeamName(publicMatch.isKnockout ? publicMatch.displayHomeTeam : match.homeTeam);
+    const awayTeam = canonicalTeamName(publicMatch.isKnockout ? publicMatch.displayAwayTeam : match.awayTeam);
+    if (!homeTeam || !awayTeam) {
+      continue;
+    }
 
     if (!teamStats.has(homeTeam)) {
       teamStats.set(homeTeam, { scored: 0, conceded: 0 });
@@ -2018,64 +2118,92 @@ async function handleStandings(req, res, pool) {
         const match = groupStageMatchById.get(prediction.matchId);
         return sum + computeMatchPoints(prediction, match, effectiveRules);
       }, 0);
-        const knockoutPoints = computeKnockoutPoints(
-          participant.knockoutPredictions,
-          knockoutProgress.actualByRound,
-          effectiveRules,
-        );
-        const bonusPoints = computeBonusPoints(
-          participant.bonusPredictions || {},
-          effectiveRules.bonusResults || {},
-          effectiveRules,
-          bonusQuestionLocks,
-        );
+      const knockoutPoints = computeKnockoutPoints(
+        participant.knockoutPredictions,
+        knockoutProgress.actualByRound,
+        effectiveRules,
+      );
+      const bonusPoints = computeBonusPoints(
+        participant.bonusPredictions || {},
+        effectiveRules.bonusResults || {},
+        effectiveRules,
+        bonusQuestionLocks,
+      );
 
-        return {
-          id: participant.id,
-          name: participant.name,
-          matchPoints,
-          knockoutPoints,
-          bonusPoints,
-          totalPoints: matchPoints + knockoutPoints + bonusPoints,
-        };
-      })
+      return {
+        id: participant.id,
+        name: participant.name,
+        matchPoints,
+        knockoutPoints,
+        bonusPoints,
+        totalPoints: matchPoints + knockoutPoints + bonusPoints,
+      };
+    })
     .sort((left, right) => right.totalPoints - left.totalPoints || right.matchPoints - left.matchPoints);
 
-  const recentMatchPredictions = recentMatches.map((match) => ({
-    match,
-    entries: poolParticipants.map((participant) => {
-      const prediction = participant.predictions.find((entry) => entry.matchId === match.id) || {
-        predictedHomeScore: null,
-        predictedAwayScore: null,
-      };
+  const recentMatchPredictions = recentMatches.map((match) => {
+    const publicMatch = getPublicMatch(match, matches, knockoutResults);
+    const scoringRound = getScoringKnockoutRoundByStage(match.stage);
+    const winnerTeam =
+      publicMatch.isKnockout
+        ? getKnockoutWinner(match, publicMatch.displayHomeTeam, publicMatch.displayAwayTeam)
+        : "";
 
-      return {
-        participantId: participant.id,
-        participantName: participant.name,
-        predictedHomeScore: prediction.predictedHomeScore,
-        predictedAwayScore: prediction.predictedAwayScore,
-        points: computeMatchPoints(prediction, match, effectiveRules),
-        outcome: predictionOutcomeLabel(prediction, match, effectiveRules),
-      };
-    }),
-  }));
+    return {
+      match: publicMatch,
+      entries: poolParticipants.map((participant) => {
+        const prediction = participant.predictions.find((entry) => entry.matchId === match.id) || {
+          predictedHomeScore: null,
+          predictedAwayScore: null,
+        };
 
-  const upcomingMatchPredictions = upcomingMatches.map((match) => ({
-    match,
-    entries: poolParticipants.map((participant) => {
-      const prediction = participant.predictions.find((entry) => entry.matchId === match.id) || {
-        predictedHomeScore: null,
-        predictedAwayScore: null,
-      };
+        return {
+          participantId: participant.id,
+          participantName: participant.name,
+          predictedHomeScore: prediction.predictedHomeScore,
+          predictedAwayScore: prediction.predictedAwayScore,
+          points: publicMatch.isKnockout ? 0 : computeMatchPoints(prediction, match, effectiveRules),
+          outcome: publicMatch.isKnockout ? "pending" : predictionOutcomeLabel(prediction, match, effectiveRules),
+          knockoutTeams: publicMatch.isKnockout && winnerTeam
+            ? [{
+                team: winnerTeam,
+                status: getParticipantKnockoutWinnerStatus(participant, scoringRound?.key || publicMatch.roundKey, winnerTeam),
+              }]
+            : [],
+        };
+      }),
+    };
+  });
 
-      return {
-        participantId: participant.id,
-        participantName: participant.name,
-        predictedHomeScore: prediction.predictedHomeScore,
-        predictedAwayScore: prediction.predictedAwayScore,
-      };
-    }),
-  }));
+  const upcomingMatchPredictions = upcomingMatches.map((match) => {
+    const publicMatch = getPublicMatch(match, matches, knockoutResults);
+    const scoringRound = getScoringKnockoutRoundByStage(match.stage);
+
+    return {
+      match: publicMatch,
+      entries: poolParticipants.map((participant) => {
+        const prediction = participant.predictions.find((entry) => entry.matchId === match.id) || {
+          predictedHomeScore: null,
+          predictedAwayScore: null,
+        };
+
+        return {
+          participantId: participant.id,
+          participantName: participant.name,
+          predictedHomeScore: prediction.predictedHomeScore,
+          predictedAwayScore: prediction.predictedAwayScore,
+          knockoutTeams: publicMatch.isKnockout
+            ? [publicMatch.displayHomeTeam, publicMatch.displayAwayTeam]
+                .filter(Boolean)
+                .map((team) => ({
+                  team,
+                  status: getParticipantKnockoutCurrentStatus(participant, scoringRound?.key || publicMatch.roundKey, team),
+                }))
+            : [],
+        };
+      }),
+    };
+  });
 
   const knockoutOverview = knockoutRoundDefinitions.flatMap((round) => {
     const roundMatches = getKnockoutMatchesByRoundKey(matches, round.key);

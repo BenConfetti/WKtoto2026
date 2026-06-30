@@ -5,6 +5,11 @@ const rounds = [
   { key: "semiFinal", label: "Halve finale", pointsKey: "semiFinalPoints", slots: 4 },
   { key: "final", label: "Finale", pointsKey: "finalPoints", slots: 2 },
 ];
+const knockoutResultRounds = [
+  ...rounds.slice(0, 4),
+  { key: "thirdPlace", label: "Troostfinale", displayLabel: "Kleine finale", slots: 2 },
+  rounds[4],
+];
 
 const AFRICAN_TEAMS = [
   "Algerije",
@@ -218,7 +223,14 @@ function canonicalTeamName(team) {
     .replace(/[^a-z]/gi, "")
     .toLocaleLowerCase("nl-NL");
 
-  return comparable === "curacao" || comparable === "curaao" ? "Curacao" : value;
+  if (comparable === "curacao" || comparable === "curaao") {
+    return "Curacao";
+  }
+  if (["australie", "australia", "australi"].includes(comparable)) {
+    return "Australië";
+  }
+
+  return value;
 }
 
 function getPoolInviteLink(pool) {
@@ -238,12 +250,12 @@ function getGroupStageMatches(matches) {
 }
 
 function getKnockoutStageMatches(matches) {
-  const knockoutLabels = new Set(rounds.map((round) => round.label));
+  const knockoutLabels = new Set(knockoutResultRounds.map((round) => round.label));
   return matches.filter((match) => knockoutLabels.has(match.stage));
 }
 
 function getKnockoutMatchesByRoundKey(matches, roundKey) {
-  const round = rounds.find((entry) => entry.key === roundKey);
+  const round = knockoutResultRounds.find((entry) => entry.key === roundKey);
   if (!round) {
     return [];
   }
@@ -313,14 +325,14 @@ function renderKnockoutResults(rules) {
   const knockoutResults = rules?.knockoutResults || {};
   knockoutResultsContainer.innerHTML = "";
 
-  for (const round of rounds) {
+  for (const round of knockoutResultRounds) {
     const matches = getKnockoutMatchesByRoundKey(adminMatches, round.key);
     const wrapper = document.createElement("section");
     wrapper.className = "round-card";
     wrapper.innerHTML = `
       <div class="round-header">
         <div>
-          <h3>${round.label}</h3>
+          <h3>${round.displayLabel || round.label}</h3>
         </div>
         <p class="round-points">${round.slots} landen</p>
       </div>
@@ -385,7 +397,7 @@ function renderKnockoutResults(rules) {
         const select = document.createElement("select");
         select.dataset.actualRoundKey = round.key;
         select.dataset.slotCode = slot.code;
-        select.setAttribute("aria-label", `${round.label} werkelijk ${slot.label} land voor ${slot.code}`);
+        select.setAttribute("aria-label", `${round.displayLabel || round.label} werkelijk ${slot.label} land voor ${slot.code}`);
 
         const emptyOption = document.createElement("option");
         emptyOption.value = "";
@@ -416,7 +428,7 @@ function renderKnockoutResults(rules) {
 function collectKnockoutResultsFromForm() {
   const result = {};
 
-  for (const round of rounds) {
+  for (const round of knockoutResultRounds) {
     result[round.key] = [...document.querySelectorAll(`[data-actual-round-key="${round.key}"]`)]
       .map((input) => input.value.trim())
       .filter(Boolean);
@@ -426,7 +438,7 @@ function collectKnockoutResultsFromForm() {
 }
 
 function applyKnockoutRoundValues(roundValues) {
-  for (const round of rounds) {
+  for (const round of knockoutResultRounds) {
     const values = roundValues[round.key] || [];
     document.querySelectorAll(`[data-actual-round-key="${round.key}"]`).forEach((input, index) => {
       if (values[index]) {
@@ -902,7 +914,7 @@ function getTeamForGroupSlot(snapshot, slotCode) {
 function collectKnockoutRoundEntries() {
   const entries = [];
 
-  for (const round of rounds) {
+  for (const round of knockoutResultRounds) {
     const matches = getKnockoutMatchesByRoundKey(adminMatches, round.key);
     const selects = [...document.querySelectorAll(`[data-actual-round-key="${round.key}"]`)];
 
@@ -970,7 +982,7 @@ function computeAutomaticKnockoutState() {
   }
 
   for (const match of allFinishedMatches) {
-    const isKnockout = rounds.some((round) => round.label === adminMatches.find((entry) => entry.id === match.id)?.stage);
+    const isKnockout = knockoutResultRounds.some((round) => round.label === adminMatches.find((entry) => entry.id === match.id)?.stage);
     let homeTeam = match.homeTeam;
     let awayTeam = match.awayTeam;
     if (isKnockout) {
@@ -1264,7 +1276,7 @@ function validateMatchesBeforeSave(matches) {
     const hasHome = match.homeScore !== null;
     const hasAway = match.awayScore !== null;
     const originalMatch = adminMatches.find((entry) => entry.id === match.id);
-    const isKnockout = rounds.some((round) => round.label === originalMatch?.stage);
+    const isKnockout = knockoutResultRounds.some((round) => round.label === originalMatch?.stage);
 
     if (hasHome !== hasAway) {
       return `Vul voor ${match.homeTeam} - ${match.awayTeam} beide scores in, of laat ze allebei leeg.`;

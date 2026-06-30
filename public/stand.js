@@ -50,7 +50,12 @@ function renderLastUpdated(match) {
     return;
   }
 
-  target.innerHTML = `${renderTeamWithFlag(match.homeTeam)} <span class="team-separator">-</span> ${renderTeamWithFlag(match.awayTeam)} (${match.homeScore} - ${match.awayScore}) op ${formatDateTime(match.updatedAt || match.kickoffAt)}.`;
+  const homeTeam = match.displayHomeTeam || match.homeTeam;
+  const awayTeam = match.displayAwayTeam || match.awayTeam;
+  const title = homeTeam && awayTeam
+    ? `${renderTeamWithFlag(homeTeam)} <span class="team-separator">-</span> ${renderTeamWithFlag(awayTeam)}`
+    : match.roundLabel || match.stage || "Wedstrijd";
+  target.innerHTML = `${title} (${match.homeScore} - ${match.awayScore}) op ${formatDateTime(match.updatedAt || match.kickoffAt)}.`;
 }
 
 function participantLink(entry, unlocked) {
@@ -229,11 +234,15 @@ function renderPredictionMatrix(matchesWithEntries, standings, unlocked, mode) {
 
   const headerCells = matchesWithEntries
     .map(({ match }) => {
-      const homeTeam = shortenTeamName(match.homeTeam);
-      const awayTeam = shortenTeamName(match.awayTeam);
+      const homeTeam = match.displayHomeTeam ? shortenTeamName(match.displayHomeTeam) : "";
+      const awayTeam = match.displayAwayTeam ? shortenTeamName(match.displayAwayTeam) : "";
       const title = isRecent
-        ? `${homeTeam} - ${awayTeam} ${match.homeScore}-${match.awayScore}`
-        : `${homeTeam} - ${awayTeam}`;
+        ? homeTeam && awayTeam
+          ? `${homeTeam} - ${awayTeam} ${match.homeScore}-${match.awayScore}`
+          : `${match.roundLabel || match.stage || "Wedstrijd"} ${match.homeScore}-${match.awayScore}`
+        : homeTeam && awayTeam
+          ? `${homeTeam} - ${awayTeam}`
+          : match.roundLabel || match.stage || "Wedstrijd";
 
       return `
         <th class="matrix-match-col">
@@ -250,12 +259,24 @@ function renderPredictionMatrix(matchesWithEntries, standings, unlocked, mode) {
       const nameCell = participantNameCell(participant, unlocked);
 
       const predictionCells = matchesWithEntries
-        .map(({ entries }) => {
+        .map(({ match, entries }) => {
           const entry = entries.find((candidate) => candidate.participantId === participant.id) || {
             predictedHomeScore: null,
             predictedAwayScore: null,
             outcome: "miss",
+            knockoutTeams: [],
           };
+          if (match.isKnockout) {
+            const teams = entry.knockoutTeams || [];
+            const content = teams.length
+              ? teams
+                  .map((teamEntry) => `
+                    <span class="knockout-team-chip status-${teamEntry.status || "pending"}">${shortenTeamName(teamEntry.team)}</span>
+                  `)
+                  .join("")
+              : "-";
+            return `<td class="matrix-score matrix-knockout-teams">${content}</td>`;
+          }
           const toneClass = isRecent ? ` prediction-${entry.outcome}` : "";
           return `<td class="matrix-score${toneClass}">${formatScore(entry, true)}</td>`;
         })

@@ -91,7 +91,14 @@
       .replace(/[^a-z]/gi, "")
       .toLocaleLowerCase("nl-NL");
 
-    return comparable === "curacao" || comparable === "curaao" ? "Curacao" : value;
+    if (comparable === "curacao" || comparable === "curaao") {
+      return "Curacao";
+    }
+    if (["australie", "australia", "australi"].includes(comparable)) {
+      return "Australië";
+    }
+
+    return value;
   }
 
   function flag(team) {
