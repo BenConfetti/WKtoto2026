@@ -55,7 +55,8 @@ function renderLastUpdated(match) {
   const title = homeTeam && awayTeam
     ? `${renderTeamWithFlag(homeTeam)} <span class="team-separator">-</span> ${renderTeamWithFlag(awayTeam)}`
     : match.roundLabel || match.stage || "Wedstrijd";
-  target.innerHTML = `${title} (${match.homeScore} - ${match.awayScore}) op ${formatDateTime(match.updatedAt || match.kickoffAt)}.`;
+  const roundPrefix = match.isKnockout && match.roundLabel ? `${match.roundLabel}: ` : "";
+  target.innerHTML = `${roundPrefix}${title} (${match.homeScore} - ${match.awayScore}) op ${formatDateTime(match.updatedAt || match.kickoffAt)}.`;
 }
 
 function participantLink(entry, unlocked) {

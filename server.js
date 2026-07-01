@@ -718,13 +718,20 @@ function getParticipantKnockoutWinnerStatus(participant, roundKey, winnerTeam) {
 }
 
 function getParticipantKnockoutCurrentStatus(participant, roundKey, team) {
-  if (!canonicalTeamName(team)) {
+  const normalizedTeam = canonicalTeamName(team);
+  if (!normalizedTeam) {
     return "empty";
   }
   if (roundKey === "thirdPlace") {
     return "pending";
   }
-  return teamIsPredictedInRound(participant, roundKey, team) ? "correct" : "wrong";
+
+  const nextRoundKey = getNextScoringRoundKey(roundKey);
+  if (!nextRoundKey) {
+    return canonicalTeamName(participant.bonusPredictions?.championTeam) === normalizedTeam ? "correct" : "wrong";
+  }
+
+  return teamIsPredictedInRound(participant, nextRoundKey, normalizedTeam) ? "correct" : "wrong";
 }
 
 function getCountryOptionsFromMatches(matches) {
