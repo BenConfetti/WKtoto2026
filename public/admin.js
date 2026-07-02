@@ -431,7 +431,6 @@ function collectKnockoutResultsFromForm() {
   for (const round of knockoutResultRounds) {
     result[round.key] = [...document.querySelectorAll(`[data-actual-round-key="${round.key}"]`)]
       .map((input) => input.value.trim())
-      .filter(Boolean);
   }
 
   return result;
@@ -961,7 +960,10 @@ function computeAutomaticKnockoutState() {
     secondRoundSlotValues.push(homeTeam || "", awayTeam || "");
   });
   if (secondRoundSlotValues.some(Boolean)) {
-    roundValues.secondRound = secondRoundSlotValues;
+    const currentSecondRoundValues = roundValues.secondRound || [];
+    roundValues.secondRound = secondRoundSlotValues.map(
+      (team, index) => currentSecondRoundValues[index] || team || "",
+    );
     secondRoundSlotValues.filter(Boolean).forEach((team) => qualifiedSecondRoundTeams.add(team));
   }
   const allFinishedMatches = [
